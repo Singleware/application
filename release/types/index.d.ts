@@ -1,0 +1,13 @@
+/**
+ * Copyright (C) 2018 Silas B. Domingos
+ * This source code is licensed under the MIT License as described in the file LICENSE.
+ */
+export { Settings } from './settings';
+export { Service } from './service';
+export { Action } from './action';
+export { Request } from './request';
+export { Match } from './types';
+import * as Module from './main';
+export declare const Main: typeof Module.Main;
+export declare const Filter: typeof Module.Main.Filter;
+export declare const Processor: typeof Module.Main.Processor;

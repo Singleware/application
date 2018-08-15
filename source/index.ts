@@ -8,8 +8,8 @@ export { Action } from './action';
 export { Request } from './request';
 export { Match } from './types';
 
-import * as Module from './main';
-export const Main = Module.Main;
+import * as MainModule from './main';
+export const Main = MainModule.Main;
 
 // Aliases
 export const Filter = Main.Filter;

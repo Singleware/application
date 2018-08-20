@@ -5,6 +5,7 @@ import { Settings } from './settings';
 import { Service } from './service';
 import { Action } from './action';
 import { Request } from './request';
+import { Logger } from './logger';
 /**
  * Generic main application class.
  */
@@ -17,6 +18,10 @@ export declare class Main<I, O> {
      * Array of services.
      */
     private services;
+    /**
+     * Array of loggers.
+     */
+    private loggers;
     /**
      * Router for filters.
      */
@@ -38,24 +43,24 @@ export declare class Main<I, O> {
      */
     private sendHandler;
     /**
-     * Filter event handler.
-     * @param match Matched routes.
-     * @param callback Handler callback.
-     */
-    protected filter(match: Routing.Match<Request<I, O>>, callback: Callable): Promise<void>;
-    /**
-     * Process event handler.
-     * @param match Matched routes.
-     * @param callback Handler callback.
-     */
-    protected process(match: Routing.Match<Request<I, O>>, callback: Callable): Promise<void>;
-    /**
      * Protect all necessary properties of the specified request.
      * @param request Request information.
      */
     private protectRequest;
     /**
-     * Get a new route settings based on the specified action settings.
+     * Filter event handler.
+     * @param match Matched routes.
+     * @param callback Handler callback.
+     */
+    protected filterHandler(match: Routing.Match<Request<I, O>>, callback: Callable): Promise<void>;
+    /**
+     * Process event handler.
+     * @param match Matched routes.
+     * @param callback Handler callback.
+     */
+    protected processHandler(match: Routing.Match<Request<I, O>>, callback: Callable): Promise<void>;
+    /**
+     * Get a new route based on the specified action settings.
      * @param action Action settings.
      * @param exact Determines whether the default exact parameter must be true or not.
      * @param handler Callback to handle the route.
@@ -75,6 +80,30 @@ export declare class Main<I, O> {
      * @param parameters Handler parameters.
      */
     private addProcessor;
+    /**
+     * Start all services.
+     * @param services Services list.
+     */
+    private startAll;
+    /**
+     * Stop all services.
+     * @param services Services list.
+     */
+    private stopAll;
+    /**
+     * Set all services observables.
+     */
+    private setAllServices;
+    /**
+     * Unset all services observables.
+     */
+    private unsetAllServices;
+    /**
+     * Notify all registered loggers.
+     * @param type Notification type.
+     * @param request Request information.
+     */
+    private notifyAllLoggers;
     /**
      * Default constructor.
      * @param settings Application settings.
@@ -100,17 +129,23 @@ export declare class Main<I, O> {
      */
     construct<T extends Object>(type: ClassConstructor<T>, ...parameters: any[]): T;
     /**
-     * Adds an application handler.
+     * Adds an application handler into this application.
      * @param handler Handler class type.
      * @returns Returns the own instance.
      */
     addHandler(handler: ClassConstructor<any>, ...parameters: any[]): Main<I, O>;
     /**
-     * Adds an application service.
+     * Adds an application service into this application.
      * @param instance Service class type.
      * @returns Returns the own instance.
      */
     addService<T extends Service<I, O>>(service: ClassConstructor<T>, ...parameters: any[]): Main<I, O>;
+    /**
+     * Adds an application logger into this application.
+     * @param logger Logger class type.
+     * @returns Returns the own instance.
+     */
+    addLogger<T extends Logger<I, O>>(logger: ClassConstructor<T>, ...parameters: any[]): Main<I, O>;
     /**
      * Starts the application with all included services.
      * @returns Returns the own instance.
@@ -126,7 +161,7 @@ export declare class Main<I, O> {
      */
     private static routes;
     /**
-     * Adds a new route settings.
+     * Adds a new route handler.
      * @param handler Handler type.
      * @param route Route settings.
      */

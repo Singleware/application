@@ -12,6 +12,8 @@ import { Service } from './service';
 import { Action } from './action';
 import { Request } from './request';
 import { Route } from './route';
+import { Logger } from './logger';
+import { States } from './states';
 
 /**
  * Generic main application class.
@@ -29,6 +31,12 @@ export class Main<I, O> {
    */
   @Class.Private()
   private services: Service<I, O>[] = [];
+
+  /**
+   * Array of loggers.
+   */
+  @Class.Private()
+  private loggers: Logger<I, O>[] = [];
 
   /**
    * Router for filters.
@@ -54,46 +62,26 @@ export class Main<I, O> {
   @Class.Private()
   private receiveHandler = Class.bindCallback(async (request: Request<I, O>) => {
     this.protectRequest(request);
+    this.notifyAllLoggers(States.RECEIVE, request);
     const processor = this.processors.match(request.path, request);
     const environment = request.environment;
-    do {
+    while (processor.length) {
       const filter = this.filters.match(request.path, request);
       request.environment = { ...processor.variables, ...environment };
       request.granted = filter.length === 0;
       await filter.next();
       await processor.next();
-    } while (processor.length);
+    }
+    this.notifyAllLoggers(States.PROCESS, request);
   });
 
   /**
    * Send handler.
    */
   @Class.Private()
-  private sendHandler = Class.bindCallback(async (request: Request<I, O>) => {});
-
-  /**
-   * Filter event handler.
-   * @param match Matched routes.
-   * @param callback Handler callback.
-   */
-  @Class.Protected()
-  protected async filter(match: Routing.Match<Request<I, O>>, callback: Callable): Promise<void> {
-    if ((match.detail.granted = await callback(match)) !== false) {
-      await match.next();
-    }
-  }
-
-  /**
-   * Process event handler.
-   * @param match Matched routes.
-   * @param callback Handler callback.
-   */
-  @Class.Protected()
-  protected async process(match: Routing.Match<Request<I, O>>, callback: Callable): Promise<void> {
-    if (match.detail.granted) {
-      await callback(match);
-    }
-  }
+  private sendHandler = Class.bindCallback(async (request: Request<I, O>) => {
+    this.notifyAllLoggers(States.SEND, request);
+  });
 
   /**
    * Protect all necessary properties of the specified request.
@@ -109,7 +97,31 @@ export class Main<I, O> {
   }
 
   /**
-   * Get a new route settings based on the specified action settings.
+   * Filter event handler.
+   * @param match Matched routes.
+   * @param callback Handler callback.
+   */
+  @Class.Protected()
+  protected async filterHandler(match: Routing.Match<Request<I, O>>, callback: Callable): Promise<void> {
+    if ((match.detail.granted = await callback(match)) !== false) {
+      await match.next();
+    }
+  }
+
+  /**
+   * Process event handler.
+   * @param match Matched routes.
+   * @param callback Handler callback.
+   */
+  @Class.Protected()
+  protected async processHandler(match: Routing.Match<Request<I, O>>, callback: Callable): Promise<void> {
+    if (match.detail.granted) {
+      await callback(match);
+    }
+  }
+
+  /**
+   * Get a new route based on the specified action settings.
    * @param action Action settings.
    * @param exact Determines whether the default exact parameter must be true or not.
    * @param handler Callback to handle the route.
@@ -136,7 +148,7 @@ export class Main<I, O> {
     this.filters.add(
       this.getRoute(route.action, false, async (match: Routing.Match<Request<I, O>>) => {
         const instance = <any>this.construct(handler, ...parameters);
-        await this.filter(match, instance[route.method].bind(instance));
+        await this.filterHandler(match, instance[route.method].bind(instance));
       })
     );
   }
@@ -152,9 +164,75 @@ export class Main<I, O> {
     this.processors.add(
       this.getRoute(route.action, true, async (match: Routing.Match<Request<I, O>>) => {
         const instance = <any>this.construct(handler, ...parameters);
-        await this.process(match, instance[route.method].bind(instance));
+        await this.processHandler(match, instance[route.method].bind(instance));
       })
     );
+  }
+
+  /**
+   * Start all services.
+   * @param services Services list.
+   */
+  @Class.Private()
+  private startAll(services: Service<I, O>[]): void {
+    for (const service of services) {
+      service.start();
+    }
+  }
+
+  /**
+   * Stop all services.
+   * @param services Services list.
+   */
+  @Class.Private()
+  private stopAll(services: Service<I, O>[]): void {
+    for (const service of services) {
+      service.stop();
+    }
+  }
+
+  /**
+   * Set all services observables.
+   */
+  @Class.Private()
+  private setAllServices(): void {
+    for (const service of this.services) {
+      service.onReceive.subscribe(this.receiveHandler);
+      service.onSend.subscribe(this.sendHandler);
+    }
+  }
+
+  /**
+   * Unset all services observables.
+   */
+  @Class.Private()
+  private unsetAllServices(): void {
+    for (const service of this.services) {
+      service.onReceive.unsubscribe(this.receiveHandler);
+      service.onSend.unsubscribe(this.sendHandler);
+    }
+  }
+
+  /**
+   * Notify all registered loggers.
+   * @param type Notification type.
+   * @param request Request information.
+   */
+  @Class.Private()
+  private notifyAllLoggers(type: States, request: Request<I, O>): void {
+    for (const logger of this.loggers) {
+      switch (type) {
+        case States.RECEIVE:
+          logger.onReceive.notifyAll(request);
+          break;
+        case States.PROCESS:
+          logger.onProcess.notifyAll(request);
+          break;
+        case States.SEND:
+          logger.onSend.notifyAll(request);
+          break;
+      }
+    }
   }
 
   /**
@@ -202,7 +280,7 @@ export class Main<I, O> {
   }
 
   /**
-   * Adds an application handler.
+   * Adds an application handler into this application.
    * @param handler Handler class type.
    * @returns Returns the own instance.
    */
@@ -226,7 +304,7 @@ export class Main<I, O> {
   }
 
   /**
-   * Adds an application service.
+   * Adds an application service into this application.
    * @param instance Service class type.
    * @returns Returns the own instance.
    */
@@ -240,6 +318,20 @@ export class Main<I, O> {
   }
 
   /**
+   * Adds an application logger into this application.
+   * @param logger Logger class type.
+   * @returns Returns the own instance.
+   */
+  @Class.Public()
+  public addLogger<T extends Logger<I, O>>(logger: ClassConstructor<T>, ...parameters: any[]): Main<I, O> {
+    if (this.started) {
+      throw new Error(`To add a new logger service the application must be stopped.`);
+    }
+    this.loggers.push(this.construct(logger, ...parameters));
+    return this;
+  }
+
+  /**
    * Starts the application with all included services.
    * @returns Returns the own instance.
    */
@@ -248,11 +340,9 @@ export class Main<I, O> {
     if (this.started) {
       throw new Error(`Application is already initialized.`);
     }
-    for (const service of this.services) {
-      service.onReceive.subscribe(this.receiveHandler);
-      service.onSend.subscribe(this.sendHandler);
-      service.start();
-    }
+    this.setAllServices();
+    this.startAll(this.loggers);
+    this.startAll(this.services);
     this.started = true;
     return this;
   }
@@ -266,11 +356,9 @@ export class Main<I, O> {
     if (!this.started) {
       throw new Error(`Application is not initialized.`);
     }
-    for (const service of this.services) {
-      service.onReceive.unsubscribe(this.receiveHandler);
-      service.onSend.unsubscribe(this.sendHandler);
-      service.stop();
-    }
+    this.stopAll(this.services);
+    this.stopAll(this.loggers);
+    this.unsetAllServices();
     this.started = false;
     return this;
   }
@@ -282,7 +370,7 @@ export class Main<I, O> {
   private static routes = new WeakMap<ClassConstructor<any>, Route[]>();
 
   /**
-   * Adds a new route settings.
+   * Adds a new route handler.
    * @param handler Handler type.
    * @param route Route settings.
    */

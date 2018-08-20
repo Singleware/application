@@ -8,6 +8,6 @@ export { Action } from './action';
 export { Request } from './request';
 export { Match } from './types';
 import * as MainModule from './main';
-export declare const Main: typeof MainModule.Main;
+export import Main = MainModule.Main;
 export declare const Filter: typeof MainModule.Main.Filter;
 export declare const Processor: typeof MainModule.Main.Processor;

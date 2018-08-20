@@ -9,7 +9,7 @@ export { Request } from './request';
 export { Match } from './types';
 
 import * as MainModule from './main';
-export const Main = MainModule.Main;
+export import Main = MainModule.Main;
 
 // Aliases
 export const Filter = Main.Filter;

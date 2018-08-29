@@ -42,34 +42,42 @@ let Main = Main_1 = class Main {
          */
         this.started = false;
         /**
-         * Receiver handler.
+         * Receive handler listener.
          */
-        this.receiveHandler = Class.bindCallback(async (request) => {
-            this.protectRequest(request);
-            this.notifyAllLoggers(states_1.States.RECEIVE, request);
-            const processor = this.processors.match(request.path, request);
-            const environment = request.environment;
-            while (processor.length) {
-                const filter = this.filters.match(request.path, request);
-                request.environment = { ...processor.variables, ...environment };
-                request.granted = filter.length === 0;
-                await filter.next();
-                await processor.next();
-            }
-            this.notifyAllLoggers(states_1.States.PROCESS, request);
-        });
+        this.receiveHandlerListener = this.receiveHandler.bind(this);
         /**
-         * Send handler.
+         * Send handler listener.
          */
-        this.sendHandler = Class.bindCallback(async (request) => {
-            this.notifyAllLoggers(states_1.States.SEND, request);
-        });
+        this.sendHandlerListener = this.sendHandler.bind(this);
         const options = {
             separator: settings.separator,
             variable: settings.variable
         };
         this.filters = new Routing.Router(options);
         this.processors = new Routing.Router(options);
+    }
+    /**
+     * Receiver handler.
+     */
+    async receiveHandler(request) {
+        this.protectRequest(request);
+        this.notifyAllLoggers(states_1.States.RECEIVE, request);
+        const processor = this.processors.match(request.path, request);
+        const environment = request.environment;
+        while (processor.length) {
+            const filter = this.filters.match(request.path, request);
+            request.environment = { ...processor.variables, ...environment };
+            request.granted = filter.length === 0;
+            await filter.next();
+            await processor.next();
+        }
+        this.notifyAllLoggers(states_1.States.PROCESS, request);
+    }
+    /**
+     * Send handler.
+     */
+    async sendHandler(request) {
+        this.notifyAllLoggers(states_1.States.SEND, request);
     }
     /**
      * Protect all necessary properties of the specified request.
@@ -114,7 +122,7 @@ let Main = Main_1 = class Main {
             exact: action.exact === void 0 ? exact : action.exact,
             constraint: action.constraint,
             environment: action.environment,
-            onMatch: Class.bindCallback(handler)
+            onMatch: handler.bind(this)
         };
     }
     /**
@@ -164,8 +172,8 @@ let Main = Main_1 = class Main {
      */
     setAllServices() {
         for (const service of this.services) {
-            service.onReceive.subscribe(this.receiveHandler);
-            service.onSend.subscribe(this.sendHandler);
+            service.onReceive.subscribe(this.receiveHandlerListener);
+            service.onSend.subscribe(this.sendHandlerListener);
         }
     }
     /**
@@ -173,8 +181,8 @@ let Main = Main_1 = class Main {
      */
     unsetAllServices() {
         for (const service of this.services) {
-            service.onReceive.unsubscribe(this.receiveHandler);
-            service.onSend.unsubscribe(this.sendHandler);
+            service.onReceive.unsubscribe(this.receiveHandlerListener);
+            service.onSend.unsubscribe(this.sendHandlerListener);
         }
     }
     /**
@@ -302,11 +310,11 @@ let Main = Main_1 = class Main {
      * @param route Route settings.
      */
     static addRoute(handler, route) {
-        let routes;
-        if (!(routes = Main_1.routes.get(handler))) {
-            Main_1.routes.set(handler, (routes = []));
+        let list;
+        if (!(list = this.routes.get(handler))) {
+            this.routes.set(handler, (list = []));
         }
-        routes.push(route);
+        list.push(route);
     }
     /**
      * Decorates the specified member to filter an application request.
@@ -314,12 +322,12 @@ let Main = Main_1 = class Main {
      * @returns Returns the decorator method.
      */
     static Filter(action) {
-        return Class.bindCallback((prototype, property, descriptor) => {
+        return (prototype, property, descriptor) => {
             if (!descriptor || !(descriptor.value instanceof Function)) {
                 throw new TypeError(`Only methods are allowed for filters.`);
             }
-            Main_1.addRoute(prototype.constructor, { type: 'filter', action: action, method: property });
-        });
+            this.addRoute(prototype.constructor, { type: 'filter', action: action, method: property });
+        };
     }
     /**
      * Decorates the specified member to process an application request.
@@ -327,12 +335,12 @@ let Main = Main_1 = class Main {
      * @returns Returns the decorator method.
      */
     static Processor(action) {
-        return Class.bindCallback((prototype, property, descriptor) => {
+        return (prototype, property, descriptor) => {
             if (!descriptor || !(descriptor.value instanceof Function)) {
                 throw new TypeError(`Only methods are allowed for processors.`);
             }
-            Main_1.addRoute(prototype.constructor, { type: 'processor', action: action, method: property });
-        });
+            this.addRoute(prototype.constructor, { type: 'processor', action: action, method: property });
+        };
     }
 };
 /**
@@ -359,10 +367,16 @@ __decorate([
 ], Main.prototype, "started", void 0);
 __decorate([
     Class.Private()
-], Main.prototype, "receiveHandler", void 0);
+], Main.prototype, "receiveHandlerListener", void 0);
 __decorate([
     Class.Private()
-], Main.prototype, "sendHandler", void 0);
+], Main.prototype, "sendHandlerListener", void 0);
+__decorate([
+    Class.Private()
+], Main.prototype, "receiveHandler", null);
+__decorate([
+    Class.Private()
+], Main.prototype, "sendHandler", null);
 __decorate([
     Class.Private()
 ], Main.prototype, "protectRequest", null);

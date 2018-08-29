@@ -50,8 +50,8 @@ __decorate([
     Class.Public()
 ], DependencyA.prototype, "page", null);
 DependencyA = __decorate([
-    Class.Describe(),
-    Website.Dependency({ singleton: true, name: 'pages' })
+    Website.Dependency({ singleton: true, name: 'pages' }),
+    Class.Describe()
 ], DependencyA);
 /**
  * Dependency class to provide helper methods to the application handler.
@@ -70,8 +70,8 @@ __decorate([
     Class.Public()
 ], DependencyB.prototype, "print", null);
 DependencyB = __decorate([
-    Class.Describe(),
-    Website.Dependency({ singleton: true, name: 'helper' })
+    Website.Dependency({ singleton: true, name: 'helper' }),
+    Class.Describe()
 ], DependencyB);
 /**
  * Service class to provide any input request and handle any output response.
@@ -108,7 +108,7 @@ let Service = class Service {
      * Starts the application service.
      */
     start() {
-        this.notifier = setInterval(Class.bind(async () => {
+        this.notifier = setInterval(async () => {
             const path = this.dependencies.pages.page;
             await this.events.receive.notifyAll({
                 path: path,
@@ -116,7 +116,7 @@ let Service = class Service {
                 output: { data: '' },
                 environment: {}
             });
-        }), 250);
+        }, 250);
         console.log('STARTED!');
     }
     /**
@@ -149,8 +149,8 @@ __decorate([
     Class.Public()
 ], Service.prototype, "stop", null);
 Service = __decorate([
-    Class.Describe(),
-    Website.Inject(DependencyA)
+    Website.Inject(DependencyA),
+    Class.Describe()
 ], Service);
 /**
  * Handler class to handle any input and provide some output.
@@ -219,8 +219,8 @@ __decorate([
     Application.Processor({ path: '/page', exact: false, environment: { name: 'R4' } })
 ], Handler.prototype, "pageProcessor", null);
 Handler = __decorate([
-    Class.Describe(),
-    Website.Inject(DependencyB)
+    Website.Inject(DependencyB),
+    Class.Describe()
 ], Handler);
 /**
  * Register services and handlers.

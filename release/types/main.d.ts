@@ -35,6 +35,14 @@ export declare class Main<I, O> {
      */
     private started;
     /**
+     * Receive handler listener.
+     */
+    private receiveHandlerListener;
+    /**
+     * Send handler listener.
+     */
+    private sendHandlerListener;
+    /**
      * Receiver handler.
      */
     private receiveHandler;

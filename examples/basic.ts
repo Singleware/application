@@ -39,8 +39,8 @@ const Website = new Application.Main<Input, Output>({
 /**
  * Dependency class to provide information to the application service.
  */
-@Class.Describe()
 @Website.Dependency({ singleton: true, name: 'pages' })
+@Class.Describe()
 class DependencyA {
   /**
    * Random pages.
@@ -59,8 +59,8 @@ class DependencyA {
 /**
  * Dependency class to provide helper methods to the application handler.
  */
-@Class.Describe()
 @Website.Dependency({ singleton: true, name: 'helper' })
+@Class.Describe()
 class DependencyB {
   /**
    * Print information about the request.
@@ -76,8 +76,8 @@ class DependencyB {
 /**
  * Service class to provide any input request and handle any output response.
  */
-@Class.Describe()
 @Website.Inject(DependencyA)
+@Class.Describe()
 class Service implements Application.Service<Input, Output> {
   /**
    * Notifier Id.
@@ -124,18 +124,15 @@ class Service implements Application.Service<Input, Output> {
    */
   @Class.Public()
   public start(): void {
-    this.notifier = <any>setInterval(
-      Class.bind(async () => {
-        const path = this.dependencies.pages.page;
-        await this.events.receive.notifyAll({
-          path: path,
-          input: { url: `http://test${path}` },
-          output: { data: '' },
-          environment: {}
-        });
-      }),
-      250
-    );
+    this.notifier = <any>setInterval(async () => {
+      const path = this.dependencies.pages.page;
+      await this.events.receive.notifyAll({
+        path: path,
+        input: { url: `http://test${path}` },
+        output: { data: '' },
+        environment: {}
+      });
+    }, 250);
     console.log('STARTED!');
   }
   /**
@@ -151,8 +148,8 @@ class Service implements Application.Service<Input, Output> {
 /**
  * Handler class to handle any input and provide some output.
  */
-@Class.Describe()
 @Website.Inject(DependencyB)
+@Class.Describe()
 class Handler {
   /**
    * Dependencies.

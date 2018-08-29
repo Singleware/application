@@ -57,10 +57,22 @@ export class Main<I, O> {
   private started: boolean = false;
 
   /**
+   * Receive handler listener.
+   */
+  @Class.Private()
+  private receiveHandlerListener = this.receiveHandler.bind(this);
+
+  /**
+   * Send handler listener.
+   */
+  @Class.Private()
+  private sendHandlerListener = this.sendHandler.bind(this);
+
+  /**
    * Receiver handler.
    */
   @Class.Private()
-  private receiveHandler = Class.bindCallback(async (request: Request<I, O>) => {
+  private async receiveHandler(request: Request<I, O>): Promise<void> {
     this.protectRequest(request);
     this.notifyAllLoggers(States.RECEIVE, request);
     const processor = this.processors.match(request.path, request);
@@ -73,15 +85,15 @@ export class Main<I, O> {
       await processor.next();
     }
     this.notifyAllLoggers(States.PROCESS, request);
-  });
+  }
 
   /**
    * Send handler.
    */
   @Class.Private()
-  private sendHandler = Class.bindCallback(async (request: Request<I, O>) => {
+  private async sendHandler(request: Request<I, O>): Promise<void> {
     this.notifyAllLoggers(States.SEND, request);
-  });
+  }
 
   /**
    * Protect all necessary properties of the specified request.
@@ -133,7 +145,7 @@ export class Main<I, O> {
       exact: action.exact === void 0 ? exact : action.exact,
       constraint: action.constraint,
       environment: action.environment,
-      onMatch: Class.bindCallback(handler)
+      onMatch: handler.bind(this)
     };
   }
 
@@ -197,8 +209,8 @@ export class Main<I, O> {
   @Class.Private()
   private setAllServices(): void {
     for (const service of this.services) {
-      service.onReceive.subscribe(this.receiveHandler);
-      service.onSend.subscribe(this.sendHandler);
+      service.onReceive.subscribe(this.receiveHandlerListener);
+      service.onSend.subscribe(this.sendHandlerListener);
     }
   }
 
@@ -208,8 +220,8 @@ export class Main<I, O> {
   @Class.Private()
   private unsetAllServices(): void {
     for (const service of this.services) {
-      service.onReceive.unsubscribe(this.receiveHandler);
-      service.onSend.unsubscribe(this.sendHandler);
+      service.onReceive.unsubscribe(this.receiveHandlerListener);
+      service.onSend.unsubscribe(this.sendHandlerListener);
     }
   }
 
@@ -376,11 +388,11 @@ export class Main<I, O> {
    */
   @Class.Private()
   private static addRoute(handler: ClassConstructor<any>, route: Route) {
-    let routes: Route[];
-    if (!(routes = <Route[]>Main.routes.get(handler))) {
-      Main.routes.set(handler, (routes = []));
+    let list: Route[];
+    if (!(list = <Route[]>this.routes.get(handler))) {
+      this.routes.set(handler, (list = []));
     }
-    routes.push(route);
+    list.push(route);
   }
 
   /**
@@ -390,14 +402,12 @@ export class Main<I, O> {
    */
   @Class.Public()
   public static Filter(action: Action): MemberDecorator {
-    return Class.bindCallback(
-      (prototype: any, property: PropertyKey, descriptor?: PropertyDescriptor): void => {
-        if (!descriptor || !(descriptor.value instanceof Function)) {
-          throw new TypeError(`Only methods are allowed for filters.`);
-        }
-        Main.addRoute(prototype.constructor, { type: 'filter', action: action, method: property });
+    return (prototype: any, property: PropertyKey, descriptor?: PropertyDescriptor): void => {
+      if (!descriptor || !(descriptor.value instanceof Function)) {
+        throw new TypeError(`Only methods are allowed for filters.`);
       }
-    );
+      this.addRoute(prototype.constructor, { type: 'filter', action: action, method: property });
+    };
   }
 
   /**
@@ -407,13 +417,11 @@ export class Main<I, O> {
    */
   @Class.Public()
   public static Processor(action: Action): MemberDecorator {
-    return Class.bindCallback(
-      (prototype: any, property: PropertyKey, descriptor?: PropertyDescriptor): void => {
-        if (!descriptor || !(descriptor.value instanceof Function)) {
-          throw new TypeError(`Only methods are allowed for processors.`);
-        }
-        Main.addRoute(prototype.constructor, { type: 'processor', action: action, method: property });
+    return (prototype: any, property: PropertyKey, descriptor?: PropertyDescriptor): void => {
+      if (!descriptor || !(descriptor.value instanceof Function)) {
+        throw new TypeError(`Only methods are allowed for processors.`);
       }
-    );
+      this.addRoute(prototype.constructor, { type: 'processor', action: action, method: property });
+    };
   }
 }

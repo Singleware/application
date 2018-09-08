@@ -88,7 +88,8 @@ let Service = class Service {
          */
         this.events = {
             receive: new Observable.Subject(),
-            send: new Observable.Subject()
+            send: new Observable.Subject(),
+            error: new Observable.Subject()
         };
         this.dependencies = dependencies;
     }
@@ -103,6 +104,12 @@ let Service = class Service {
      */
     get onSend() {
         return this.events.send;
+    }
+    /**
+     * Error events.
+     */
+    get onError() {
+        return this.events.error;
     }
     /**
      * Starts the application service.
@@ -142,6 +149,9 @@ __decorate([
 __decorate([
     Class.Public()
 ], Service.prototype, "onSend", null);
+__decorate([
+    Class.Public()
+], Service.prototype, "onError", null);
 __decorate([
     Class.Public()
 ], Service.prototype, "start", null);

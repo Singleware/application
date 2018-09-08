@@ -14,17 +14,18 @@ export interface Service<I, O> {
    * Receive input events.
    */
   readonly onReceive: Observable.Subject<Request<I, O>>;
-
   /**
    * Send output events.
    */
   readonly onSend: Observable.Subject<Request<I, O>>;
-
+  /**
+   * Error events.
+   */
+  readonly onError: Observable.Subject<Request<I, O>>;
   /**
    * Starts the service.
    */
   start(): void;
-
   /**
    * Stops the service.
    */

@@ -5,7 +5,7 @@
 import * as Routing from '@singleware/routing';
 
 /**
- * Application action interface.
+ * Application actions interface.
  */
 export interface Action {
   /**

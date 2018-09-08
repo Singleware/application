@@ -1,6 +1,11 @@
+/**
+ * Copyright (C) 2018 Silas B. Domingos
+ * This source code is licensed under the MIT License as described in the file LICENSE.
+ */
+import * as Class from '@singleware/class';
 import * as Routing from '@singleware/routing';
 import * as Injection from '@singleware/injection';
-import { ClassDecorator, MemberDecorator, ClassConstructor, Callable } from './types';
+import { ClassDecorator, MemberDecorator, Constructor, Callable } from './types';
 import { Settings } from './settings';
 import { Service } from './service';
 import { Action } from './action';
@@ -43,6 +48,10 @@ export declare class Main<I, O> {
      */
     private sendHandlerListener;
     /**
+     * Error handler listener.
+     */
+    private errorHandlerListener;
+    /**
      * Receiver handler.
      */
     private receiveHandler;
@@ -50,6 +59,10 @@ export declare class Main<I, O> {
      * Send handler.
      */
     private sendHandler;
+    /**
+     * Error handler.
+     */
+    private errorHandler;
     /**
      * Protect all necessary properties of the specified request.
      * @param request Request information.
@@ -89,27 +102,10 @@ export declare class Main<I, O> {
      */
     private addProcessor;
     /**
-     * Start all services.
-     * @param services Services list.
-     */
-    private startAll;
-    /**
-     * Stop all services.
-     * @param services Services list.
-     */
-    private stopAll;
-    /**
-     * Set all services observables.
-     */
-    private setAllServices;
-    /**
-     * Unset all services observables.
-     */
-    private unsetAllServices;
-    /**
      * Notify all registered loggers.
      * @param type Notification type.
      * @param request Request information.
+     * @throws Throws an error when the logger state is invalid.
      */
     private notifyAllLoggers;
     /**
@@ -135,25 +131,25 @@ export declare class Main<I, O> {
      * @param parameters Initial parameters.
      * @returns Returns a new instance of the specified class type.
      */
-    construct<T extends Object>(type: ClassConstructor<T>, ...parameters: any[]): T;
+    construct<T extends Object>(type: Constructor<T>, ...parameters: any[]): T;
     /**
      * Adds an application handler into this application.
      * @param handler Handler class type.
      * @returns Returns the own instance.
      */
-    addHandler(handler: ClassConstructor<any>, ...parameters: any[]): Main<I, O>;
+    addHandler(handler: Class.Constructor, ...parameters: any[]): Main<I, O>;
     /**
      * Adds an application service into this application.
      * @param instance Service class type.
-     * @returns Returns the own instance.
+     * @returns Returns the service instance.
      */
-    addService<T extends Service<I, O>>(service: ClassConstructor<T>, ...parameters: any[]): Main<I, O>;
+    addService<T extends Service<I, O>>(service: Constructor<T>, ...parameters: any[]): T;
     /**
      * Adds an application logger into this application.
      * @param logger Logger class type.
-     * @returns Returns the own instance.
+     * @returns Returns the logger instance.
      */
-    addLogger<T extends Logger<I, O>>(logger: ClassConstructor<T>, ...parameters: any[]): Main<I, O>;
+    addLogger<T extends Logger<I, O>>(logger: Constructor<T>, ...parameters: any[]): T;
     /**
      * Starts the application with all included services.
      * @returns Returns the own instance.

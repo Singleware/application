@@ -5,14 +5,25 @@
 import * as Observable from '@singleware/observable';
 
 import { Request } from './request';
-import { Service } from './service';
 
 /**
  * Application logger interface.
  */
-export interface Logger<I, O> extends Service<I, O> {
+export interface Logger<I, O> {
+  /**
+   * Receive input events.
+   */
+  readonly onReceive: Observable.Observer<Request<I, O>>;
   /**
    * Process input events.
    */
-  readonly onProcess: Observable.Subject<Request<I, O>>;
+  readonly onProcess: Observable.Observer<Request<I, O>>;
+  /**
+   * Send output events.
+   */
+  readonly onSend: Observable.Observer<Request<I, O>>;
+  /**
+   * Error events.
+   */
+  readonly onError: Observable.Observer<Request<I, O>>;
 }

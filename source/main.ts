@@ -6,14 +6,13 @@ import * as Class from '@singleware/class';
 import * as Routing from '@singleware/routing';
 import * as Injection from '@singleware/injection';
 
-import { ClassDecorator, MemberDecorator, ClassConstructor, Callable } from './types';
+import { ClassDecorator, MemberDecorator, Constructor, Callable } from './types';
 import { Settings } from './settings';
 import { Service } from './service';
 import { Action } from './action';
 import { Request } from './request';
 import { Route } from './route';
 import { Logger } from './logger';
-import { States } from './states';
 
 /**
  * Generic main application class.
@@ -24,19 +23,19 @@ export class Main<I, O> {
    * DI management.
    */
   @Class.Private()
-  private dependencies: Injection.Manager = new Injection.Manager();
+  private dependencies = new Injection.Manager();
 
   /**
    * Array of services.
    */
   @Class.Private()
-  private services: Service<I, O>[] = [];
+  private services = <Service<I, O>[]>[];
 
   /**
    * Array of loggers.
    */
   @Class.Private()
-  private loggers: Logger<I, O>[] = [];
+  private loggers = <Logger<I, O>[]>[];
 
   /**
    * Router for filters.
@@ -54,7 +53,7 @@ export class Main<I, O> {
    * Determines whether the application is started or not.
    */
   @Class.Private()
-  private started: boolean = false;
+  private started = false;
 
   /**
    * Receive handler listener.
@@ -69,12 +68,18 @@ export class Main<I, O> {
   private sendHandlerListener = this.sendHandler.bind(this);
 
   /**
+   * Error handler listener.
+   */
+  @Class.Private()
+  private errorHandlerListener = this.errorHandler.bind(this);
+
+  /**
    * Receiver handler.
    */
   @Class.Private()
   private async receiveHandler(request: Request<I, O>): Promise<void> {
     this.protectRequest(request);
-    this.notifyAllLoggers(States.RECEIVE, request);
+    this.notifyAllLoggers('receive', request);
     const processor = this.processors.match(request.path, request);
     const environment = request.environment;
     while (processor.length) {
@@ -84,7 +89,7 @@ export class Main<I, O> {
       await filter.next();
       await processor.next();
     }
-    this.notifyAllLoggers(States.PROCESS, request);
+    this.notifyAllLoggers('process', request);
   }
 
   /**
@@ -92,7 +97,15 @@ export class Main<I, O> {
    */
   @Class.Private()
   private async sendHandler(request: Request<I, O>): Promise<void> {
-    this.notifyAllLoggers(States.SEND, request);
+    this.notifyAllLoggers('send', request);
+  }
+
+  /**
+   * Error handler.
+   */
+  @Class.Private()
+  private async errorHandler(request: Request<I, O>): Promise<void> {
+    this.notifyAllLoggers('error', request);
   }
 
   /**
@@ -156,7 +169,7 @@ export class Main<I, O> {
    * @param parameters Handler parameters.
    */
   @Class.Private()
-  private addFilter(route: Route, handler: ClassConstructor<any>, ...parameters: any[]): void {
+  private addFilter(route: Route, handler: Constructor, ...parameters: any[]): void {
     this.filters.add(
       this.getRoute(route.action, false, async (match: Routing.Match<Request<I, O>>) => {
         const instance = <any>this.construct(handler, ...parameters);
@@ -172,7 +185,7 @@ export class Main<I, O> {
    * @param parameters Handler parameters.
    */
   @Class.Private()
-  private addProcessor(route: Route, handler: ClassConstructor<any>, ...parameters: any[]): void {
+  private addProcessor(route: Route, handler: Constructor, ...parameters: any[]): void {
     this.processors.add(
       this.getRoute(route.action, true, async (match: Routing.Match<Request<I, O>>) => {
         const instance = <any>this.construct(handler, ...parameters);
@@ -182,67 +195,30 @@ export class Main<I, O> {
   }
 
   /**
-   * Start all services.
-   * @param services Services list.
-   */
-  @Class.Private()
-  private startAll(services: Service<I, O>[]): void {
-    for (const service of services) {
-      service.start();
-    }
-  }
-
-  /**
-   * Stop all services.
-   * @param services Services list.
-   */
-  @Class.Private()
-  private stopAll(services: Service<I, O>[]): void {
-    for (const service of services) {
-      service.stop();
-    }
-  }
-
-  /**
-   * Set all services observables.
-   */
-  @Class.Private()
-  private setAllServices(): void {
-    for (const service of this.services) {
-      service.onReceive.subscribe(this.receiveHandlerListener);
-      service.onSend.subscribe(this.sendHandlerListener);
-    }
-  }
-
-  /**
-   * Unset all services observables.
-   */
-  @Class.Private()
-  private unsetAllServices(): void {
-    for (const service of this.services) {
-      service.onReceive.unsubscribe(this.receiveHandlerListener);
-      service.onSend.unsubscribe(this.sendHandlerListener);
-    }
-  }
-
-  /**
    * Notify all registered loggers.
    * @param type Notification type.
    * @param request Request information.
+   * @throws Throws an error when the logger state is invalid.
    */
   @Class.Private()
-  private notifyAllLoggers(type: States, request: Request<I, O>): void {
+  private notifyAllLoggers(type: string, request: Request<I, O>): void {
+    const copy = Object.freeze({ ...request });
     for (const logger of this.loggers) {
       switch (type) {
-        case States.RECEIVE:
-          logger.onReceive.notifyAll(request);
+        case 'receive':
+          logger.onReceive(copy);
           break;
-        case States.PROCESS:
-          logger.onProcess.notifyAll(request);
+        case 'process':
+          logger.onProcess(copy);
           break;
-        case States.SEND:
-          logger.onSend.notifyAll(request);
+        case 'send':
+          logger.onSend(copy);
           break;
+        case 'error':
+          logger.onError(copy);
+          break;
+        default:
+          throw new TypeError(`Invalid notification type '${type}'`);
       }
     }
   }
@@ -287,7 +263,7 @@ export class Main<I, O> {
    * @returns Returns a new instance of the specified class type.
    */
   @Class.Public()
-  public construct<T extends Object>(type: ClassConstructor<T>, ...parameters: any[]): T {
+  public construct<T extends Object>(type: Constructor<T>, ...parameters: any[]): T {
     return this.dependencies.construct(type, ...parameters);
   }
 
@@ -297,9 +273,9 @@ export class Main<I, O> {
    * @returns Returns the own instance.
    */
   @Class.Public()
-  public addHandler(handler: ClassConstructor<any>, ...parameters: any[]): Main<I, O> {
+  public addHandler(handler: Class.Constructor, ...parameters: any[]): Main<I, O> {
     if (this.started) {
-      throw new Error(`To add a new handler the application must be stopped.`);
+      throw new Error(`To add new handlers the application must be stopped.`);
     }
     const routes = <Route[]>Main.routes.get(handler.prototype.constructor) || [];
     for (const route of routes) {
@@ -318,29 +294,31 @@ export class Main<I, O> {
   /**
    * Adds an application service into this application.
    * @param instance Service class type.
-   * @returns Returns the own instance.
+   * @returns Returns the service instance.
    */
   @Class.Public()
-  public addService<T extends Service<I, O>>(service: ClassConstructor<T>, ...parameters: any[]): Main<I, O> {
+  public addService<T extends Service<I, O>>(service: Constructor<T>, ...parameters: any[]): T {
     if (this.started) {
-      throw new Error(`To add a new service the application must be stopped.`);
+      throw new Error(`To add new services the application must be stopped.`);
     }
-    this.services.push(this.construct(service, ...parameters));
-    return this;
+    const instance = this.construct(service, ...parameters);
+    this.services.push(instance);
+    return instance;
   }
 
   /**
    * Adds an application logger into this application.
    * @param logger Logger class type.
-   * @returns Returns the own instance.
+   * @returns Returns the logger instance.
    */
   @Class.Public()
-  public addLogger<T extends Logger<I, O>>(logger: ClassConstructor<T>, ...parameters: any[]): Main<I, O> {
+  public addLogger<T extends Logger<I, O>>(logger: Constructor<T>, ...parameters: any[]): T {
     if (this.started) {
-      throw new Error(`To add a new logger service the application must be stopped.`);
+      throw new Error(`To add new loggers service the application must be stopped.`);
     }
-    this.loggers.push(this.construct(logger, ...parameters));
-    return this;
+    const instance = this.construct(logger, ...parameters);
+    this.loggers.push(instance);
+    return instance;
   }
 
   /**
@@ -352,9 +330,14 @@ export class Main<I, O> {
     if (this.started) {
       throw new Error(`Application is already initialized.`);
     }
-    this.setAllServices();
-    this.startAll(this.loggers);
-    this.startAll(this.services);
+
+    for (const service of this.services) {
+      service.onReceive.subscribe(this.receiveHandlerListener);
+      service.onSend.subscribe(this.sendHandlerListener);
+      service.onError.subscribe(this.errorHandlerListener);
+      service.start();
+    }
+
     this.started = true;
     return this;
   }
@@ -368,9 +351,14 @@ export class Main<I, O> {
     if (!this.started) {
       throw new Error(`Application is not initialized.`);
     }
-    this.stopAll(this.services);
-    this.stopAll(this.loggers);
-    this.unsetAllServices();
+
+    for (const service of this.services) {
+      service.stop();
+      service.onReceive.unsubscribe(this.receiveHandlerListener);
+      service.onSend.unsubscribe(this.sendHandlerListener);
+      service.onError.unsubscribe(this.errorHandlerListener);
+    }
+
     this.started = false;
     return this;
   }
@@ -379,7 +367,7 @@ export class Main<I, O> {
    * Global application routes.
    */
   @Class.Private()
-  private static routes = new WeakMap<ClassConstructor<any>, Route[]>();
+  private static routes: WeakMap<Constructor, Route[]> = new WeakMap();
 
   /**
    * Adds a new route handler.
@@ -387,7 +375,7 @@ export class Main<I, O> {
    * @param route Route settings.
    */
   @Class.Private()
-  private static addRoute(handler: ClassConstructor<any>, route: Route) {
+  private static addRoute(handler: Constructor, route: Route): void {
     let list: Route[];
     if (!(list = <Route[]>this.routes.get(handler))) {
       this.routes.set(handler, (list = []));
@@ -406,7 +394,7 @@ export class Main<I, O> {
       if (!descriptor || !(descriptor.value instanceof Function)) {
         throw new TypeError(`Only methods are allowed for filters.`);
       }
-      this.addRoute(prototype.constructor, { type: 'filter', action: action, method: property });
+      this.addRoute(prototype.constructor, { type: 'filter', action: action, method: <string>property });
     };
   }
 
@@ -421,7 +409,7 @@ export class Main<I, O> {
       if (!descriptor || !(descriptor.value instanceof Function)) {
         throw new TypeError(`Only methods are allowed for processors.`);
       }
-      this.addRoute(prototype.constructor, { type: 'processor', action: action, method: property });
+      this.addRoute(prototype.constructor, { type: 'processor', action: action, method: <string>property });
     };
   }
 }

@@ -95,7 +95,8 @@ class Service implements Application.Service<Input, Output> {
   @Class.Private()
   private events = {
     receive: new Observable.Subject<Application.Request<Input, Output>>(),
-    send: new Observable.Subject<Application.Request<Input, Output>>()
+    send: new Observable.Subject<Application.Request<Input, Output>>(),
+    error: new Observable.Subject<Application.Request<Input, Output>>()
   };
   /**
    * Default constructor.
@@ -118,6 +119,13 @@ class Service implements Application.Service<Input, Output> {
   @Class.Public()
   public get onSend(): Observable.Subject<Application.Request<Input, Output>> {
     return this.events.send;
+  }
+  /**
+   * Error events.
+   */
+  @Class.Public()
+  public get onError(): Observable.Subject<Application.Request<Input, Output>> {
+    return this.events.error;
   }
   /**
    * Starts the application service.

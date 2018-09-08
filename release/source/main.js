@@ -15,7 +15,6 @@ var Main_1;
 const Class = require("@singleware/class");
 const Routing = require("@singleware/routing");
 const Injection = require("@singleware/injection");
-const states_1 = require("./states");
 /**
  * Generic main application class.
  */
@@ -49,6 +48,10 @@ let Main = Main_1 = class Main {
          * Send handler listener.
          */
         this.sendHandlerListener = this.sendHandler.bind(this);
+        /**
+         * Error handler listener.
+         */
+        this.errorHandlerListener = this.errorHandler.bind(this);
         const options = {
             separator: settings.separator,
             variable: settings.variable
@@ -61,7 +64,7 @@ let Main = Main_1 = class Main {
      */
     async receiveHandler(request) {
         this.protectRequest(request);
-        this.notifyAllLoggers(states_1.States.RECEIVE, request);
+        this.notifyAllLoggers('receive', request);
         const processor = this.processors.match(request.path, request);
         const environment = request.environment;
         while (processor.length) {
@@ -71,13 +74,19 @@ let Main = Main_1 = class Main {
             await filter.next();
             await processor.next();
         }
-        this.notifyAllLoggers(states_1.States.PROCESS, request);
+        this.notifyAllLoggers('process', request);
     }
     /**
      * Send handler.
      */
     async sendHandler(request) {
-        this.notifyAllLoggers(states_1.States.SEND, request);
+        this.notifyAllLoggers('send', request);
+    }
+    /**
+     * Error handler.
+     */
+    async errorHandler(request) {
+        this.notifyAllLoggers('error', request);
     }
     /**
      * Protect all necessary properties of the specified request.
@@ -150,58 +159,29 @@ let Main = Main_1 = class Main {
         }));
     }
     /**
-     * Start all services.
-     * @param services Services list.
-     */
-    startAll(services) {
-        for (const service of services) {
-            service.start();
-        }
-    }
-    /**
-     * Stop all services.
-     * @param services Services list.
-     */
-    stopAll(services) {
-        for (const service of services) {
-            service.stop();
-        }
-    }
-    /**
-     * Set all services observables.
-     */
-    setAllServices() {
-        for (const service of this.services) {
-            service.onReceive.subscribe(this.receiveHandlerListener);
-            service.onSend.subscribe(this.sendHandlerListener);
-        }
-    }
-    /**
-     * Unset all services observables.
-     */
-    unsetAllServices() {
-        for (const service of this.services) {
-            service.onReceive.unsubscribe(this.receiveHandlerListener);
-            service.onSend.unsubscribe(this.sendHandlerListener);
-        }
-    }
-    /**
      * Notify all registered loggers.
      * @param type Notification type.
      * @param request Request information.
+     * @throws Throws an error when the logger state is invalid.
      */
     notifyAllLoggers(type, request) {
+        const copy = Object.freeze({ ...request });
         for (const logger of this.loggers) {
             switch (type) {
-                case states_1.States.RECEIVE:
-                    logger.onReceive.notifyAll(request);
+                case 'receive':
+                    logger.onReceive(copy);
                     break;
-                case states_1.States.PROCESS:
-                    logger.onProcess.notifyAll(request);
+                case 'process':
+                    logger.onProcess(copy);
                     break;
-                case states_1.States.SEND:
-                    logger.onSend.notifyAll(request);
+                case 'send':
+                    logger.onSend(copy);
                     break;
+                case 'error':
+                    logger.onError(copy);
+                    break;
+                default:
+                    throw new TypeError(`Invalid notification type '${type}'`);
             }
         }
     }
@@ -237,7 +217,7 @@ let Main = Main_1 = class Main {
      */
     addHandler(handler, ...parameters) {
         if (this.started) {
-            throw new Error(`To add a new handler the application must be stopped.`);
+            throw new Error(`To add new handlers the application must be stopped.`);
         }
         const routes = Main_1.routes.get(handler.prototype.constructor) || [];
         for (const route of routes) {
@@ -255,26 +235,28 @@ let Main = Main_1 = class Main {
     /**
      * Adds an application service into this application.
      * @param instance Service class type.
-     * @returns Returns the own instance.
+     * @returns Returns the service instance.
      */
     addService(service, ...parameters) {
         if (this.started) {
-            throw new Error(`To add a new service the application must be stopped.`);
+            throw new Error(`To add new services the application must be stopped.`);
         }
-        this.services.push(this.construct(service, ...parameters));
-        return this;
+        const instance = this.construct(service, ...parameters);
+        this.services.push(instance);
+        return instance;
     }
     /**
      * Adds an application logger into this application.
      * @param logger Logger class type.
-     * @returns Returns the own instance.
+     * @returns Returns the logger instance.
      */
     addLogger(logger, ...parameters) {
         if (this.started) {
-            throw new Error(`To add a new logger service the application must be stopped.`);
+            throw new Error(`To add new loggers service the application must be stopped.`);
         }
-        this.loggers.push(this.construct(logger, ...parameters));
-        return this;
+        const instance = this.construct(logger, ...parameters);
+        this.loggers.push(instance);
+        return instance;
     }
     /**
      * Starts the application with all included services.
@@ -284,9 +266,12 @@ let Main = Main_1 = class Main {
         if (this.started) {
             throw new Error(`Application is already initialized.`);
         }
-        this.setAllServices();
-        this.startAll(this.loggers);
-        this.startAll(this.services);
+        for (const service of this.services) {
+            service.onReceive.subscribe(this.receiveHandlerListener);
+            service.onSend.subscribe(this.sendHandlerListener);
+            service.onError.subscribe(this.errorHandlerListener);
+            service.start();
+        }
         this.started = true;
         return this;
     }
@@ -298,9 +283,12 @@ let Main = Main_1 = class Main {
         if (!this.started) {
             throw new Error(`Application is not initialized.`);
         }
-        this.stopAll(this.services);
-        this.stopAll(this.loggers);
-        this.unsetAllServices();
+        for (const service of this.services) {
+            service.stop();
+            service.onReceive.unsubscribe(this.receiveHandlerListener);
+            service.onSend.unsubscribe(this.sendHandlerListener);
+            service.onError.unsubscribe(this.errorHandlerListener);
+        }
         this.started = false;
         return this;
     }
@@ -373,10 +361,16 @@ __decorate([
 ], Main.prototype, "sendHandlerListener", void 0);
 __decorate([
     Class.Private()
+], Main.prototype, "errorHandlerListener", void 0);
+__decorate([
+    Class.Private()
 ], Main.prototype, "receiveHandler", null);
 __decorate([
     Class.Private()
 ], Main.prototype, "sendHandler", null);
+__decorate([
+    Class.Private()
+], Main.prototype, "errorHandler", null);
 __decorate([
     Class.Private()
 ], Main.prototype, "protectRequest", null);
@@ -395,18 +389,6 @@ __decorate([
 __decorate([
     Class.Private()
 ], Main.prototype, "addProcessor", null);
-__decorate([
-    Class.Private()
-], Main.prototype, "startAll", null);
-__decorate([
-    Class.Private()
-], Main.prototype, "stopAll", null);
-__decorate([
-    Class.Private()
-], Main.prototype, "setAllServices", null);
-__decorate([
-    Class.Private()
-], Main.prototype, "unsetAllServices", null);
 __decorate([
     Class.Private()
 ], Main.prototype, "notifyAllLoggers", null);

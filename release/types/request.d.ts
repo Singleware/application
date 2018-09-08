@@ -2,7 +2,7 @@
  * Copyright (C) 2018 Silas B. Domingos
  * This source code is licensed under the MIT License as described in the file LICENSE.
  */
-import * as Routing from '@singleware/routing';
+import { Variables } from './types';
 
 /**
  * Application request interface.
@@ -23,7 +23,7 @@ export interface Request<I, O> {
   /**
    * Request environment.
    */
-  environment: Routing.Variables;
+  environment: Variables;
   /**
    * Determines whether this request is allowed or not.
    */

@@ -19,5 +19,5 @@ export interface Route {
   /**
    * Route method name.
    */
-  method: PropertyKey;
+  method: string;
 }

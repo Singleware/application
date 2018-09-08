@@ -4,9 +4,10 @@
  */
 export { Settings } from './settings';
 export { Service } from './service';
+export { Logger } from './logger';
 export { Action } from './action';
 export { Request } from './request';
-export { Match } from './types';
+export { Match, Variables } from './types';
 import * as MainModule from './main';
 export import Main = MainModule.Main;
 export declare const Filter: typeof MainModule.Main.Filter;

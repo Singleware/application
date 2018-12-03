@@ -20,12 +20,12 @@ export type Constructor<T extends Object = any> = Class.Constructor<T>;
 /**
  * Type declaration for class decorators.
  */
-export type ClassDecorator = Class.ClassDecorator;
+export type ClassDecorator = <T extends Object>(type: Constructor<T>) => any;
 
 /**
  * Type declaration for member decorators.
  */
-export type MemberDecorator = Class.MemberDecorator;
+export type MemberDecorator = <T>(target: Object, property: string | symbol, descriptor?: TypedPropertyDescriptor<T>) => any;
 
 /**
  * Type declaration for route match.

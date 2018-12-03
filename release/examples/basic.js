@@ -26,11 +26,12 @@ const Website = new Application.Main({
 /**
  * Dependency class to provide information to the application service.
  */
-let DependencyA = class DependencyA {
+let DependencyA = class DependencyA extends Class.Null {
     /**
      * Dependency class to provide information to the application service.
      */
     constructor() {
+        super(...arguments);
         /**
          * Random pages.
          */
@@ -56,7 +57,7 @@ DependencyA = __decorate([
 /**
  * Dependency class to provide helper methods to the application handler.
  */
-let DependencyB = class DependencyB {
+let DependencyB = class DependencyB extends Class.Null {
     /**
      * Print information about the request.
      * @param name Action name.
@@ -76,13 +77,14 @@ DependencyB = __decorate([
 /**
  * Service class to provide any input request and handle any output response.
  */
-let Service = class Service {
+let Service = class Service extends Class.Null {
     /**
      * Default constructor.
      * @param dependencies Service dependencies.
      * @param parameters Service parameters.
      */
     constructor(dependencies, parameters) {
+        super();
         /**
          * Events.
          */
@@ -165,12 +167,13 @@ Service = __decorate([
 /**
  * Handler class to handle any input and provide some output.
  */
-let Handler = class Handler {
+let Handler = class Handler extends Class.Null {
     /**
      * Default constructor.
      * @param dependencies Handler dependencies.
      */
     constructor(dependencies) {
+        super();
         this.dependencies = dependencies;
     }
     /**

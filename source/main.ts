@@ -18,7 +18,7 @@ import { Logger } from './logger';
  * Generic main application class.
  */
 @Class.Describe()
-export class Main<I, O> {
+export class Main<I, O> extends Class.Null {
   /**
    * DI management.
    */
@@ -228,6 +228,7 @@ export class Main<I, O> {
    * @param settings Application settings.
    */
   constructor(settings: Settings) {
+    super();
     const options = {
       separator: settings.separator,
       variable: settings.variable

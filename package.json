@@ -7,30 +7,28 @@
   "name": "@singleware/application",
   "description": "Singleware base application package.",
   "license": "MIT",
-  "version": "1.1.4",
+  "version": "1.1.8",
   "main": "release/source/index.js",
   "types": "release/types/index.d.ts",
   "keywords": [
-    "application",
     "base application",
-    "main application",
-    "async application"
+    "application core"
   ],
   "repository": {
     "type": "git",
     "url": "https://github.com/singleware/application"
   },
   "engines": {
-    "node": ">=8"
+    "node": ">=10"
   },
   "dependencies": {
-    "@singleware/class": "^1.1.11",
-    "@singleware/injection": "^1.0.17",
-    "@singleware/observable": "^1.0.19",
-    "@singleware/routing": "^1.0.24"
+    "@singleware/class": "^1.1.14",
+    "@singleware/injection": "^1.0.19",
+    "@singleware/observable": "^1.0.21",
+    "@singleware/routing": "^1.0.26"
   },
   "devDependencies": {
-    "prettier": "^1.14.3",
+    "prettier": "^1.15.3",
     "typescript": "^2.9.2"
   },
   "prettier": {

@@ -41,7 +41,7 @@ const Website = new Application.Main<Input, Output>({
  */
 @Website.Dependency({ singleton: true, name: 'pages' })
 @Class.Describe()
-class DependencyA {
+class DependencyA extends Class.Null {
   /**
    * Random pages.
    */
@@ -61,7 +61,7 @@ class DependencyA {
  */
 @Website.Dependency({ singleton: true, name: 'helper' })
 @Class.Describe()
-class DependencyB {
+class DependencyB extends Class.Null {
   /**
    * Print information about the request.
    * @param name Action name.
@@ -78,7 +78,7 @@ class DependencyB {
  */
 @Website.Inject(DependencyA)
 @Class.Describe()
-class Service implements Application.Service<Input, Output> {
+class Service extends Class.Null implements Application.Service<Input, Output> {
   /**
    * Notifier Id.
    */
@@ -104,6 +104,7 @@ class Service implements Application.Service<Input, Output> {
    * @param parameters Service parameters.
    */
   constructor(dependencies: any, parameters: any[]) {
+    super();
     this.dependencies = dependencies;
   }
   /**
@@ -158,7 +159,7 @@ class Service implements Application.Service<Input, Output> {
  */
 @Website.Inject(DependencyB)
 @Class.Describe()
-class Handler {
+class Handler extends Class.Null {
   /**
    * Dependencies.
    */
@@ -169,6 +170,7 @@ class Handler {
    * @param dependencies Handler dependencies.
    */
   constructor(dependencies: any) {
+    super();
     this.dependencies = dependencies;
   }
   /**

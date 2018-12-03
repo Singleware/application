@@ -9,9 +9,25 @@ export { Action } from './action';
 export { Request } from './request';
 export { Match, Variables } from './types';
 
-import * as MainModule from './main';
-export import Main = MainModule.Main;
+/**
+ * Declarations.
+ */
+import { Action } from './action';
+import { MemberDecorator } from './types';
 
-// Aliases
-export const Filter = Main.Filter;
-export const Processor = Main.Processor;
+import * as Module from './main';
+export import Main = Module.Main;
+
+/**
+ * Decorates the specified member to filter an application request. (Alias for Main.Filter)
+ * @param action Filter action settings.
+ * @returns Returns the decorator method.
+ */
+export const Filter = (action: Action): MemberDecorator => Main.Filter(action);
+
+/**
+ * Decorates the specified member to process an application request. (Alias for Main.Processor)
+ * @param action Route action settings.
+ * @returns Returns the decorator method.
+ */
+export const Processor = (action: Action): MemberDecorator => Main.Processor(action);

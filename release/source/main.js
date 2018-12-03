@@ -18,12 +18,13 @@ const Injection = require("@singleware/injection");
 /**
  * Generic main application class.
  */
-let Main = Main_1 = class Main {
+let Main = Main_1 = class Main extends Class.Null {
     /**
      * Default constructor.
      * @param settings Application settings.
      */
     constructor(settings) {
+        super();
         /**
          * DI management.
          */

@@ -7,7 +7,7 @@
   "name": "@singleware/application",
   "description": "Singleware base application package.",
   "license": "MIT",
-  "version": "1.1.8",
+  "version": "1.1.9",
   "main": "release/source/index.js",
   "types": "release/types/index.d.ts",
   "keywords": [
@@ -22,13 +22,13 @@
     "node": ">=10"
   },
   "dependencies": {
-    "@singleware/class": "^1.1.14",
+    "@singleware/class": "^1.1.19",
     "@singleware/injection": "^1.0.19",
     "@singleware/observable": "^1.0.21",
     "@singleware/routing": "^1.0.26"
   },
   "devDependencies": {
-    "prettier": "^1.15.3",
+    "prettier": "^1.16.4",
     "typescript": "^2.9.2"
   },
   "prettier": {

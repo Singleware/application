@@ -14,7 +14,7 @@ import { Logger } from './logger';
 /**
  * Generic main application class.
  */
-export declare class Main<I, O> {
+export declare class Main<I, O> extends Class.Null {
     /**
      * DI management.
      */

@@ -1,8 +1,8 @@
-/**
- * Copyright (C) 2018 Silas B. Domingos
+/*
+ * Copyright (C) 2018-2019 Silas B. Domingos
  * This source code is licensed under the MIT License as described in the file LICENSE.
  */
-import { Variables } from './types';
+import * as Types from './types';
 
 /**
  * Application request interface.
@@ -23,9 +23,13 @@ export interface Request<I, O> {
   /**
    * Request environment.
    */
-  environment: Variables;
+  environment: Types.Variables;
   /**
    * Determines whether this request is allowed or not.
    */
-  granted?: boolean;
+  granted: boolean;
+  /**
+   * Request error.
+   */
+  error?: Error;
 }

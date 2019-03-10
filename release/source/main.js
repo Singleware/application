@@ -8,8 +8,8 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 var Main_1;
 "use strict";
-/**
- * Copyright (C) 2018 Silas B. Domingos
+/*
+ * Copyright (C) 2018-2019 Silas B. Domingos
  * This source code is licensed under the MIT License as described in the file LICENSE.
  */
 const Class = require("@singleware/class");
@@ -26,9 +26,13 @@ let Main = Main_1 = class Main extends Class.Null {
     constructor(settings) {
         super();
         /**
-         * DI management.
+         * Determines whether the application is started or not.
          */
-        this.dependencies = new Injection.Manager();
+        this.started = false;
+        /**
+         * Dependency Injection Manager.
+         */
+        this.dim = new Injection.Manager();
         /**
          * Array of services.
          */
@@ -37,10 +41,6 @@ let Main = Main_1 = class Main extends Class.Null {
          * Array of loggers.
          */
         this.loggers = [];
-        /**
-         * Determines whether the application is started or not.
-         */
-        this.started = false;
         /**
          * Receive handler listener.
          */
@@ -53,119 +53,28 @@ let Main = Main_1 = class Main extends Class.Null {
          * Error handler listener.
          */
         this.errorHandlerListener = this.errorHandler.bind(this);
-        const options = {
-            separator: settings.separator,
-            variable: settings.variable
-        };
-        this.filters = new Routing.Router(options);
-        this.processors = new Routing.Router(options);
+        this.filters = new Routing.Router(settings);
+        this.processors = new Routing.Router(settings);
     }
     /**
-     * Receiver handler.
-     */
-    async receiveHandler(request) {
-        this.protectRequest(request);
-        this.notifyAllLoggers('receive', request);
-        const processor = this.processors.match(request.path, request);
-        const environment = request.environment;
-        while (processor.length) {
-            const filter = this.filters.match(request.path, request);
-            request.environment = { ...processor.variables, ...environment };
-            request.granted = filter.length === 0;
-            await filter.next();
-            await processor.next();
-        }
-        this.notifyAllLoggers('process', request);
-    }
-    /**
-     * Send handler.
-     */
-    async sendHandler(request) {
-        this.notifyAllLoggers('send', request);
-    }
-    /**
-     * Error handler.
-     */
-    async errorHandler(request) {
-        this.notifyAllLoggers('error', request);
-    }
-    /**
-     * Protect all necessary properties of the specified request.
-     * @param request Request information.
-     */
-    protectRequest(request) {
-        Object.defineProperties(request, {
-            path: { value: request.path, writable: false, configurable: false },
-            input: { value: request.input, writable: false, configurable: false },
-            output: { value: request.output, writable: false, configurable: false }
-        });
-    }
-    /**
-     * Filter event handler.
-     * @param match Matched routes.
-     * @param callback Handler callback.
-     */
-    async filterHandler(match, callback) {
-        if ((match.detail.granted = await callback(match)) !== false) {
-            await match.next();
-        }
-    }
-    /**
-     * Process event handler.
-     * @param match Matched routes.
-     * @param callback Handler callback.
-     */
-    async processHandler(match, callback) {
-        if (match.detail.granted) {
-            await callback(match);
-        }
-    }
-    /**
-     * Get a new route based on the specified action settings.
-     * @param action Action settings.
-     * @param exact Determines whether the default exact parameter must be true or not.
-     * @param handler Callback to handle the route.
-     */
-    getRoute(action, exact, handler) {
-        return {
-            path: action.path,
-            exact: action.exact === void 0 ? exact : action.exact,
-            constraint: action.constraint,
-            environment: action.environment,
-            onMatch: handler.bind(this)
-        };
-    }
-    /**
-     * Adds a new route filter.
+     * Adds a new route handler.
+     * @param handler Handler type.
      * @param route Route settings.
-     * @param handler Handler class type.
-     * @param parameters Handler parameters.
      */
-    addFilter(route, handler, ...parameters) {
-        this.filters.add(this.getRoute(route.action, false, async (match) => {
-            const instance = this.construct(handler, ...parameters);
-            await this.filterHandler(match, instance[route.method].bind(instance));
-        }));
+    static addRoute(handler, route) {
+        let list;
+        if (!(list = this.routes.get(handler))) {
+            this.routes.set(handler, (list = []));
+        }
+        list.push(route);
     }
     /**
-     * Adds a new route processor.
-     * @param route Route settings.
-     * @param handler Handler class type.
-     * @param parameters Handler parameters.
-     */
-    addProcessor(route, handler, ...parameters) {
-        this.processors.add(this.getRoute(route.action, true, async (match) => {
-            const instance = this.construct(handler, ...parameters);
-            await this.processHandler(match, instance[route.method].bind(instance));
-        }));
-    }
-    /**
-     * Notify all registered loggers.
+     * Notify all registered loggers about new requests.
      * @param type Notification type.
      * @param request Request information.
-     * @throws Throws an error when the logger state is invalid.
+     * @throws Throws an error when the notification type is not valid.
      */
-    notifyAllLoggers(type, request) {
+    notifyRequest(type, request) {
         const copy = Object.freeze({ ...request });
         for (const logger of this.loggers) {
             switch (type) {
@@ -182,9 +91,103 @@ let Main = Main_1 = class Main extends Class.Null {
                     logger.onError(copy);
                     break;
                 default:
-                    throw new TypeError(`Invalid notification type '${type}'`);
+                    throw new TypeError(`Request notification type '${type}' does not supported.`);
             }
         }
+    }
+    /**
+     * Notify all registered loggers about new actions.
+     * @param type Notification type.
+     * @param request Request information.
+     * @throws Throws an error when the notification type is not valid.
+     */
+    notifyAction(type) {
+        for (const logger of this.loggers) {
+            switch (type) {
+                case 'start':
+                    logger.onStart(void 0);
+                    break;
+                case 'stop':
+                    logger.onStop(void 0);
+                    break;
+                default:
+                    throw new TypeError(`Action notification type '${type}' does not supported.`);
+            }
+        }
+    }
+    /**
+     * Performs the specified handler method with the given route match and parameters.
+     * @param handler Handler class.
+     * @param method Handler method name.
+     * @param parameters Handler constructor parameters.
+     * @param match Route match.
+     * @returns Returns the same value returned by the performed handler method.
+     */
+    async performHandler(handler, method, parameters, match) {
+        let result;
+        try {
+            result = await new handler(...parameters)[method](match);
+        }
+        catch (error) {
+            match.detail.error = error;
+            this.notifyRequest('error', match.detail);
+        }
+        finally {
+            return result;
+        }
+    }
+    /**
+     * Performs all route filters for the specified request with the given variables.
+     * @param request Request information.
+     * @param variables Request processor variables.
+     * @returns Returns true when the request access is granted or false otherwise.
+     */
+    async performFilters(request, variables) {
+        const environment = request.environment;
+        const match = this.filters.match(request.path, request);
+        while (request.granted && match.length) {
+            match.detail.environment = { ...variables, ...match.variables, ...environment };
+            await match.next();
+        }
+        request.environment = environment;
+        return request.granted || false;
+    }
+    /**
+     * Receiver handler.
+     * @param request Request information.
+     */
+    async receiveHandler(request) {
+        this.notifyRequest('receive', request);
+        const match = this.processors.match(request.path, request);
+        const environment = request.environment;
+        while (match.length && (await this.performFilters(request, match.variables))) {
+            match.detail.environment = { ...match.variables, ...environment };
+            await match.next();
+        }
+        request.environment = environment;
+        this.notifyRequest('process', request);
+    }
+    /**
+     * Send handler.
+     * @param request Request information.
+     */
+    async sendHandler(request) {
+        this.notifyRequest('send', request);
+    }
+    /**
+     * Error handler.
+     * @param request Request information.
+     */
+    async errorHandler(request) {
+        this.notifyRequest('error', request);
+    }
+    /**
+     * Process handler to be inherited and extended.
+     * @param match Match information.
+     * @param callback Callable member.
+     */
+    async processHandler(match, callback) {
+        await callback(match);
     }
     /**
      * Decorates the specified class to be an application dependency.
@@ -192,7 +195,7 @@ let Main = Main_1 = class Main extends Class.Null {
      * @returns Returns the decorator method.
      */
     Dependency(settings) {
-        return this.dependencies.Describe(settings);
+        return this.dim.Describe(settings);
     }
     /**
      * Decorates the specified class to be injected by the specified application dependencies.
@@ -200,19 +203,10 @@ let Main = Main_1 = class Main extends Class.Null {
      * @returns Returns the decorator method.
      */
     Inject(...list) {
-        return this.dependencies.Inject(...list);
+        return this.dim.Inject(...list);
     }
     /**
-     * Constructs a new instance of the specified class type.
-     * @param type Class type.
-     * @param parameters Initial parameters.
-     * @returns Returns a new instance of the specified class type.
-     */
-    construct(type, ...parameters) {
-        return this.dependencies.construct(type, ...parameters);
-    }
-    /**
-     * Adds an application handler into this application.
+     * Adds a generic route handler into this application.
      * @param handler Handler class type.
      * @returns Returns the own instance.
      */
@@ -224,40 +218,57 @@ let Main = Main_1 = class Main extends Class.Null {
         for (const route of routes) {
             switch (route.type) {
                 case 'filter':
-                    this.addFilter(route, handler, ...parameters);
+                    this.filters.add({
+                        ...route.action,
+                        onMatch: async (match) => {
+                            match.detail.granted = (await this.performHandler(handler, route.method, parameters, match)) === true;
+                        }
+                    });
                     break;
                 case 'processor':
-                    this.addProcessor(route, handler, ...parameters);
+                    this.processors.add({
+                        ...route.action,
+                        exact: route.action.exact === void 0 ? true : route.action.exact,
+                        onMatch: async (match) => {
+                            await this.processHandler(match, this.performHandler.bind(this, handler, route.method, parameters));
+                        }
+                    });
                     break;
+                default:
+                    throw new TypeError(`Unsupported route type ${route.type}`);
             }
         }
         return this;
     }
     /**
-     * Adds an application service into this application.
-     * @param instance Service class type.
+     * Adds a service handler into this application.
+     * @param instance Service class type or instance.
      * @returns Returns the service instance.
      */
     addService(service, ...parameters) {
         if (this.started) {
             throw new Error(`To add new services the application must be stopped.`);
         }
-        const instance = this.construct(service, ...parameters);
-        this.services.push(instance);
-        return instance;
+        if (service instanceof Function) {
+            service = new service(...parameters);
+        }
+        this.services.push(service);
+        return service;
     }
     /**
-     * Adds an application logger into this application.
-     * @param logger Logger class type.
+     * Adds a logger handler into this application.
+     * @param logger Logger class type or instance.
      * @returns Returns the logger instance.
      */
     addLogger(logger, ...parameters) {
         if (this.started) {
             throw new Error(`To add new loggers service the application must be stopped.`);
         }
-        const instance = this.construct(logger, ...parameters);
-        this.loggers.push(instance);
-        return instance;
+        if (logger instanceof Function) {
+            logger = new logger(...parameters);
+        }
+        this.loggers.push(logger);
+        return logger;
     }
     /**
      * Starts the application with all included services.
@@ -265,8 +276,9 @@ let Main = Main_1 = class Main extends Class.Null {
      */
     start() {
         if (this.started) {
-            throw new Error(`Application is already initialized.`);
+            throw new Error(`The application is already initialized.`);
         }
+        this.notifyAction('start');
         for (const service of this.services) {
             service.onReceive.subscribe(this.receiveHandlerListener);
             service.onSend.subscribe(this.sendHandlerListener);
@@ -282,7 +294,7 @@ let Main = Main_1 = class Main extends Class.Null {
      */
     stop() {
         if (!this.started) {
-            throw new Error(`Application is not initialized.`);
+            throw new Error(`The application is not initialized.`);
         }
         for (const service of this.services) {
             service.stop();
@@ -291,19 +303,8 @@ let Main = Main_1 = class Main extends Class.Null {
             service.onError.unsubscribe(this.errorHandlerListener);
         }
         this.started = false;
+        this.notifyAction('stop');
         return this;
-    }
-    /**
-     * Adds a new route handler.
-     * @param handler Handler type.
-     * @param route Route settings.
-     */
-    static addRoute(handler, route) {
-        let list;
-        if (!(list = this.routes.get(handler))) {
-            this.routes.set(handler, (list = []));
-        }
-        list.push(route);
     }
     /**
      * Decorates the specified member to filter an application request.
@@ -312,10 +313,14 @@ let Main = Main_1 = class Main extends Class.Null {
      */
     static Filter(action) {
         return (prototype, property, descriptor) => {
-            if (!descriptor || !(descriptor.value instanceof Function)) {
-                throw new TypeError(`Only methods are allowed for filters.`);
+            if (!(descriptor.value instanceof Function)) {
+                throw new TypeError(`Only methods are allowed as filters.`);
             }
-            this.addRoute(prototype.constructor, { type: 'filter', action: action, method: property });
+            this.addRoute(prototype.constructor, {
+                type: 'filter',
+                action: action,
+                method: property
+            });
         };
     }
     /**
@@ -325,20 +330,27 @@ let Main = Main_1 = class Main extends Class.Null {
      */
     static Processor(action) {
         return (prototype, property, descriptor) => {
-            if (!descriptor || !(descriptor.value instanceof Function)) {
-                throw new TypeError(`Only methods are allowed for processors.`);
+            if (!(descriptor.value instanceof Function)) {
+                throw new TypeError(`Only methods are allowed as processors.`);
             }
-            this.addRoute(prototype.constructor, { type: 'processor', action: action, method: property });
+            this.addRoute(prototype.constructor, {
+                type: 'processor',
+                action: action,
+                method: property
+            });
         };
     }
 };
 /**
- * Global application routes.
+ * Global routes.
  */
 Main.routes = new WeakMap();
 __decorate([
     Class.Private()
-], Main.prototype, "dependencies", void 0);
+], Main.prototype, "started", void 0);
+__decorate([
+    Class.Private()
+], Main.prototype, "dim", void 0);
 __decorate([
     Class.Private()
 ], Main.prototype, "services", void 0);
@@ -353,9 +365,6 @@ __decorate([
 ], Main.prototype, "processors", void 0);
 __decorate([
     Class.Private()
-], Main.prototype, "started", void 0);
-__decorate([
-    Class.Private()
 ], Main.prototype, "receiveHandlerListener", void 0);
 __decorate([
     Class.Private()
@@ -363,6 +372,18 @@ __decorate([
 __decorate([
     Class.Private()
 ], Main.prototype, "errorHandlerListener", void 0);
+__decorate([
+    Class.Private()
+], Main.prototype, "notifyRequest", null);
+__decorate([
+    Class.Private()
+], Main.prototype, "notifyAction", null);
+__decorate([
+    Class.Private()
+], Main.prototype, "performHandler", null);
+__decorate([
+    Class.Private()
+], Main.prototype, "performFilters", null);
 __decorate([
     Class.Private()
 ], Main.prototype, "receiveHandler", null);
@@ -373,49 +394,28 @@ __decorate([
     Class.Private()
 ], Main.prototype, "errorHandler", null);
 __decorate([
-    Class.Private()
-], Main.prototype, "protectRequest", null);
-__decorate([
-    Class.Protected()
-], Main.prototype, "filterHandler", null);
-__decorate([
     Class.Protected()
 ], Main.prototype, "processHandler", null);
 __decorate([
-    Class.Private()
-], Main.prototype, "getRoute", null);
-__decorate([
-    Class.Private()
-], Main.prototype, "addFilter", null);
-__decorate([
-    Class.Private()
-], Main.prototype, "addProcessor", null);
-__decorate([
-    Class.Private()
-], Main.prototype, "notifyAllLoggers", null);
-__decorate([
-    Class.Public()
+    Class.Protected()
 ], Main.prototype, "Dependency", null);
 __decorate([
-    Class.Public()
+    Class.Protected()
 ], Main.prototype, "Inject", null);
 __decorate([
-    Class.Public()
-], Main.prototype, "construct", null);
-__decorate([
-    Class.Public()
+    Class.Protected()
 ], Main.prototype, "addHandler", null);
 __decorate([
-    Class.Public()
+    Class.Protected()
 ], Main.prototype, "addService", null);
 __decorate([
-    Class.Public()
+    Class.Protected()
 ], Main.prototype, "addLogger", null);
 __decorate([
-    Class.Public()
+    Class.Protected()
 ], Main.prototype, "start", null);
 __decorate([
-    Class.Public()
+    Class.Protected()
 ], Main.prototype, "stop", null);
 __decorate([
     Class.Private()

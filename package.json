@@ -7,12 +7,12 @@
   "name": "@singleware/application",
   "description": "Singleware base application package.",
   "license": "MIT",
-  "version": "1.1.9",
+  "version": "1.2.2",
   "main": "release/source/index.js",
   "types": "release/types/index.d.ts",
   "keywords": [
-    "base application",
-    "application core"
+    "application base",
+    "application skeleton"
   ],
   "repository": {
     "type": "git",
@@ -28,6 +28,7 @@
     "@singleware/routing": "^1.0.26"
   },
   "devDependencies": {
+    "@types/node": "^11.11.0",
     "prettier": "^1.16.4",
     "typescript": "^2.9.2"
   },
@@ -38,8 +39,10 @@
     "semi": true
   },
   "scripts": {
-    "build": "npm run make && npm run update",
-    "make": "tsc",
-    "update": "cp -Rf ./source/*.d.ts ./release/types"
+    "start": "node ./release/examples/basic/main.js",
+    "build": "npm run make-source && npm run make-examples",
+    "make-source": "npx tsc -p ./source && npm run update-source",
+    "make-examples": "npx tsc -p ./examples",
+    "update-source": "cp -Rf ./source/*.d.ts ./release/types"
   }
 }

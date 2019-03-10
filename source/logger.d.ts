@@ -1,9 +1,8 @@
-/**
- * Copyright (C) 2018 Silas B. Domingos
+/*
+ * Copyright (C) 2018-2019 Silas B. Domingos
  * This source code is licensed under the MIT License as described in the file LICENSE.
  */
-import * as Observable from '@singleware/observable';
-
+import * as Types from './types';
 import { Request } from './request';
 
 /**
@@ -13,17 +12,25 @@ export interface Logger<I, O> {
   /**
    * Receive input events.
    */
-  readonly onReceive: Observable.Observer<Request<I, O>>;
+  onReceive: Types.RequestObserver<I, O>;
   /**
    * Process input events.
    */
-  readonly onProcess: Observable.Observer<Request<I, O>>;
+  onProcess: Types.RequestObserver<I, O>;
   /**
    * Send output events.
    */
-  readonly onSend: Observable.Observer<Request<I, O>>;
+  onSend: Types.RequestObserver<I, O>;
   /**
    * Error events.
    */
-  readonly onError: Observable.Observer<Request<I, O>>;
+  onError: Types.RequestObserver<I, O>;
+  /**
+   * Start events.
+   */
+  onStart: Types.Observer;
+  /**
+   * Stop events.
+   */
+  onStop: Types.Observer;
 }

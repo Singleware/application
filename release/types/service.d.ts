@@ -1,9 +1,8 @@
-/**
- * Copyright (C) 2018 Silas B. Domingos
+/*
+ * Copyright (C) 2018-2019 Silas B. Domingos
  * This source code is licensed under the MIT License as described in the file LICENSE.
  */
-import * as Observable from '@singleware/observable';
-
+import * as Types from './types';
 import { Request } from './request';
 
 /**
@@ -13,15 +12,15 @@ export interface Service<I, O> {
   /**
    * Receive input events.
    */
-  readonly onReceive: Observable.Subject<Request<I, O>>;
+  readonly onReceive: Types.RequestSubject<I, O>;
   /**
    * Send output events.
    */
-  readonly onSend: Observable.Subject<Request<I, O>>;
+  readonly onSend: Types.RequestSubject<I, O>;
   /**
    * Error events.
    */
-  readonly onError: Observable.Subject<Request<I, O>>;
+  readonly onError: Types.RequestSubject<I, O>;
   /**
    * Starts the service.
    */

@@ -7,7 +7,7 @@
   "name": "@singleware/application",
   "description": "Singleware base application package.",
   "license": "MIT",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "main": "release/source/index.js",
   "types": "release/types/index.d.ts",
   "keywords": [

@@ -101,6 +101,13 @@ export declare class Main<I, O> extends Class.Null {
      */
     private errorHandler;
     /**
+     * Filter handler to be inherited and extended.
+     * @param match Match information.
+     * @param allowed Determine whether the filter is allowing the request matching or not.
+     * @returns Returns true when the filter handler still allows the request matching or false otherwise.
+     */
+    protected filterHandler(match: Types.Match<I, O>, allowed: boolean): Promise<boolean>;
+    /**
      * Process handler to be inherited and extended.
      * @param match Match information.
      * @param callback Callable member.

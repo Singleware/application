@@ -182,6 +182,15 @@ let Main = Main_1 = class Main extends Class.Null {
         this.notifyRequest('error', request);
     }
     /**
+     * Filter handler to be inherited and extended.
+     * @param match Match information.
+     * @param allowed Determine whether the filter is allowing the request matching or not.
+     * @returns Returns true when the filter handler still allows the request matching or false otherwise.
+     */
+    async filterHandler(match, allowed) {
+        return allowed;
+    }
+    /**
      * Process handler to be inherited and extended.
      * @param match Match information.
      * @param callback Callable member.
@@ -221,7 +230,8 @@ let Main = Main_1 = class Main extends Class.Null {
                     this.filters.add({
                         ...route.action,
                         onMatch: async (match) => {
-                            match.detail.granted = (await this.performHandler(handler, route.method, parameters, match)) === true;
+                            const allowed = (await this.performHandler(handler, route.method, parameters, match)) === true;
+                            match.detail.granted = (await this.filterHandler(match, allowed)) && allowed === true;
                         }
                     });
                     break;
@@ -230,7 +240,8 @@ let Main = Main_1 = class Main extends Class.Null {
                         ...route.action,
                         exact: route.action.exact === void 0 ? true : route.action.exact,
                         onMatch: async (match) => {
-                            await this.processHandler(match, this.performHandler.bind(this, handler, route.method, parameters));
+                            const callback = this.performHandler.bind(this, handler, route.method, parameters);
+                            await this.processHandler(match, callback);
                         }
                     });
                     break;
@@ -393,6 +404,9 @@ __decorate([
 __decorate([
     Class.Private()
 ], Main.prototype, "errorHandler", null);
+__decorate([
+    Class.Protected()
+], Main.prototype, "filterHandler", null);
 __decorate([
     Class.Protected()
 ], Main.prototype, "processHandler", null);

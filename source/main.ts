@@ -219,6 +219,17 @@ export class Main<I, O> extends Class.Null {
   }
 
   /**
+   * Filter handler to be inherited and extended.
+   * @param match Match information.
+   * @param allowed Determine whether the filter is allowing the request matching or not.
+   * @returns Returns true when the filter handler still allows the request matching or false otherwise.
+   */
+  @Class.Protected()
+  protected async filterHandler(match: Types.Match<I, O>, allowed: boolean): Promise<boolean> {
+    return allowed;
+  }
+
+  /**
    * Process handler to be inherited and extended.
    * @param match Match information.
    * @param callback Callable member.
@@ -265,7 +276,8 @@ export class Main<I, O> extends Class.Null {
           this.filters.add({
             ...route.action,
             onMatch: async (match: Types.Match<I, O>): Promise<void> => {
-              match.detail.granted = (await this.performHandler(handler, route.method, parameters, match)) === true;
+              const allowed = (await this.performHandler(handler, route.method, parameters, match)) === true;
+              match.detail.granted = (await this.filterHandler(match, allowed)) && allowed === true;
             }
           });
           break;
@@ -274,7 +286,8 @@ export class Main<I, O> extends Class.Null {
             ...route.action,
             exact: route.action.exact === void 0 ? true : route.action.exact,
             onMatch: async (match: Types.Match<I, O>): Promise<void> => {
-              await this.processHandler(match, this.performHandler.bind(this, handler, route.method, parameters));
+              const callback = this.performHandler.bind(this, handler, route.method, parameters);
+              await this.processHandler(match, callback);
             }
           });
           break;

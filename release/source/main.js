@@ -146,10 +146,10 @@ let Main = Main_1 = class Main extends Class.Null {
         const local = request.environment.local;
         const match = this.filters.match(request.path, request);
         while (request.granted && match.length) {
-            match.detail.environment.local = { ...variables, ...match.variables, ...local };
+            request.environment.local = { ...variables, ...match.variables, ...local };
             await match.next();
+            request.environment.local = local;
         }
-        request.environment.local = local;
         return request.granted || false;
     }
     /**
@@ -161,10 +161,10 @@ let Main = Main_1 = class Main extends Class.Null {
         const local = request.environment.local;
         const match = this.processors.match(request.path, request);
         while (match.length && (await this.performFilters(request, match.variables))) {
-            match.detail.environment.local = { ...match.variables, ...local };
+            request.environment.local = { ...match.variables, ...local };
             await match.next();
+            request.environment.local = local;
         }
-        request.environment.local = local;
         this.notifyRequest('process', request);
     }
     /**

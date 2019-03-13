@@ -143,13 +143,13 @@ let Main = Main_1 = class Main extends Class.Null {
      * @returns Returns true when the request access is granted or false otherwise.
      */
     async performFilters(request, variables) {
-        const environment = request.environment;
+        const local = request.environment.local;
         const match = this.filters.match(request.path, request);
         while (request.granted && match.length) {
-            match.detail.environment = { ...variables, ...match.variables, ...environment };
+            match.detail.environment.local = { ...variables, ...match.variables, ...local };
             await match.next();
         }
-        request.environment = environment;
+        request.environment.local = local;
         return request.granted || false;
     }
     /**
@@ -158,13 +158,13 @@ let Main = Main_1 = class Main extends Class.Null {
      */
     async receiveHandler(request) {
         this.notifyRequest('receive', request);
+        const local = request.environment.local;
         const match = this.processors.match(request.path, request);
-        const environment = request.environment;
         while (match.length && (await this.performFilters(request, match.variables))) {
-            match.detail.environment = { ...match.variables, ...environment };
+            match.detail.environment.local = { ...match.variables, ...local };
             await match.next();
         }
-        request.environment = environment;
+        request.environment.local = local;
         this.notifyRequest('process', request);
     }
     /**

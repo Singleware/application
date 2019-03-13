@@ -7,6 +7,7 @@ import * as Routing from '@singleware/routing';
 import * as Injection from '@singleware/injection';
 
 import * as Types from './types';
+
 import { Settings } from './settings';
 import { Service } from './service';
 import { Action } from './action';
@@ -173,13 +174,13 @@ export class Main<I, O> extends Class.Null {
    */
   @Class.Private()
   private async performFilters(request: Request<I, O>, variables: Types.Variables): Promise<boolean> {
-    const environment = request.environment;
+    const local = request.environment.local;
     const match = this.filters.match(request.path, request);
     while (request.granted && match.length) {
-      match.detail.environment = { ...variables, ...match.variables, ...environment };
+      match.detail.environment.local = { ...variables, ...match.variables, ...local };
       await match.next();
     }
-    request.environment = environment;
+    request.environment.local = local;
     return request.granted || false;
   }
 
@@ -190,13 +191,13 @@ export class Main<I, O> extends Class.Null {
   @Class.Private()
   private async receiveHandler(request: Request<I, O>): Promise<void> {
     this.notifyRequest('receive', request);
+    const local = request.environment.local;
     const match = this.processors.match(request.path, request);
-    const environment = request.environment;
     while (match.length && (await this.performFilters(request, match.variables))) {
-      match.detail.environment = { ...match.variables, ...environment };
+      match.detail.environment.local = { ...match.variables, ...local };
       await match.next();
     }
-    request.environment = environment;
+    request.environment.local = local;
     this.notifyRequest('process', request);
   }
 

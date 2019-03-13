@@ -22,7 +22,9 @@ let Handler = class Handler extends Class.Null {
      * @param match Match information.
      */
     printMatch(type, match) {
-        console.log(`${type}\t`, `Grated: ${match.detail.granted}\t`, `Path: '${match.path}'\t`, `Environment: '${match.detail.environment.name}'`, `Remaining: '${match.remaining}'\t`);
+        const request = match.detail;
+        const environment = request.environment.local;
+        console.log(`${type}\t`, `Grated: ${request.granted}\t`, `Path: '${match.path}'\t`, `Name: '${environment.name}'`, `Remaining: '${match.remaining}'\t`);
     }
     /**
      * Default route filter. (Execute on all routes)
@@ -30,7 +32,7 @@ let Handler = class Handler extends Class.Null {
      */
     async defaultFilter(match) {
         this.printMatch('Filter', match);
-        if (match.detail.environment.auth !== false) {
+        if (match.detail.environment.local.auth !== false) {
             return Math.random() >= 0.35;
         }
         return true;

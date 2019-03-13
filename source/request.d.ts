@@ -4,6 +4,8 @@
  */
 import * as Types from './types';
 
+import { Environment } from './environment';
+
 /**
  * Application request interface.
  */
@@ -23,7 +25,7 @@ export interface Request<I, O> {
   /**
    * Request environment.
    */
-  environment: Types.Variables;
+  environment: Environment;
   /**
    * Determines whether this request is allowed or not.
    */

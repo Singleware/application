@@ -21,7 +21,7 @@ let Logger = class Logger extends Class.Null {
      * @param request Request information.
      */
     printEvent(type, request) {
-        console.log(`${type}\t`, `Grated: ${request.granted}\t`, `Path: '${request.path}'\t`, `Environment: '${request.environment.name}'`);
+        console.log(`${type}\t`, `Grated: ${request.granted}\t`, `Path: '${request.path}'\t`, `Name: '${request.environment.local.name}'`);
     }
     /**
      * Receive handler.

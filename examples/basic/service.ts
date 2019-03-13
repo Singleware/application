@@ -72,7 +72,12 @@ export class Service extends Class.Null implements Application.Service<Input, Ou
         data: ''
       },
       environment: {
-        variable: 'Example'
+        local: {
+          variable: 'Example'
+        },
+        shared: {
+          variable: 'Example'
+        }
       },
       granted: true
     });

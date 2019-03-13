@@ -66,7 +66,12 @@ let Service = class Service extends Class.Null {
                 data: ''
             },
             environment: {
-                variable: 'Example'
+                local: {
+                    variable: 'Example'
+                },
+                shared: {
+                    variable: 'Example'
+                }
             },
             granted: true
         });

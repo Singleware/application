@@ -19,11 +19,13 @@ export class Handler extends Class.Null {
    */
   @Class.Private()
   private printMatch(type: string, match: Match): void {
+    const request = match.detail;
+    const environment = request.environment.local;
     console.log(
       `${type}\t`,
-      `Grated: ${match.detail.granted}\t`,
+      `Grated: ${request.granted}\t`,
       `Path: '${match.path}'\t`,
-      `Environment: '${match.detail.environment.name}'`,
+      `Name: '${environment.name}'`,
       `Remaining: '${match.remaining}'\t`
     );
   }
@@ -36,7 +38,7 @@ export class Handler extends Class.Null {
   @Application.Filter({ path: '/', environment: { name: 'F' } })
   public async defaultFilter(match: Match): Promise<boolean> {
     this.printMatch('Filter', match);
-    if (match.detail.environment.auth !== false) {
+    if (match.detail.environment.local.auth !== false) {
       return Math.random() >= 0.35;
     }
     return true;

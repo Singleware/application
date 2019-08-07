@@ -2,13 +2,10 @@
  * Copyright (C) 2018-2019 Silas B. Domingos
  * This source code is licensed under the MIT License as described in the file LICENSE.
  */
-
 /**
- * Application response output.
+ * Action types.
  */
-export interface Output {
-  /**
-   * Response data.
-   */
-  data: string;
+export declare enum Action {
+    Start = "start",
+    Stop = "stop"
 }

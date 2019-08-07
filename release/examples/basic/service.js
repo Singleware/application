@@ -6,7 +6,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-/*
+/*!
  * Copyright (C) 2018 Silas B. Domingos
  * This source code is licensed under the MIT License as described in the file LICENSE.
  */
@@ -57,7 +57,7 @@ let Service = class Service extends Class.Null {
      */
     start() {
         const path = `/${process.argv[2] || ''}`;
-        this.receiveSubject.notifyAll({
+        const request = {
             path: path,
             input: {
                 url: `https://application.singleware.com${path}`
@@ -74,7 +74,13 @@ let Service = class Service extends Class.Null {
                 }
             },
             granted: true
-        });
+        };
+        try {
+            this.receiveSubject.notifyAll(request);
+        }
+        catch (exception) {
+            this.errorSubject.notifyAll(request);
+        }
     }
     /**
      * Stops the application service.
@@ -109,3 +115,4 @@ Service = __decorate([
     Class.Describe()
 ], Service);
 exports.Service = Service;
+//# sourceMappingURL=service.js.map

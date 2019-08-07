@@ -4,11 +4,9 @@
  */
 
 /**
- * Application response output.
+ * Route types.
  */
-export interface Output {
-  /**
-   * Response data.
-   */
-  data: string;
+export enum Route {
+  Filter = 'filter',
+  Processor = 'processor'
 }

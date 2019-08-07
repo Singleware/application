@@ -1,4 +1,4 @@
-/*
+/*!
  * Copyright (C) 2018-2019 Silas B. Domingos
  * This source code is licensed under the MIT License as described in the file LICENSE.
  */
@@ -28,16 +28,6 @@ export type ClassDecorator = <T extends Object>(type: Constructor<T>) => any;
 export type MemberDecorator = <T>(target: Object, property: string | symbol, descriptor: TypedPropertyDescriptor<T>) => any;
 
 /**
- * Type declaration for routers.
- */
-export type Router<I, O> = Routing.Router<Request<I, O>>;
-
-/**
- * Type declaration for route match.
- */
-export type Match<I, O> = Routing.Match<Request<I, O>>;
-
-/**
  * Type declaration for route variables.
  */
 export type Variables = Routing.Variables;
@@ -48,9 +38,9 @@ export type Variables = Routing.Variables;
 export type Constraint = Routing.Constraint;
 
 /**
- * Type declaration for request subject.
+ * Type declaration for observer.
  */
-export type RequestSubject<I, O> = Observable.Subject<Request<I, O>>;
+export type Observer = Observable.Observer<void>;
 
 /**
  * Type declaration for request observer.
@@ -58,6 +48,31 @@ export type RequestSubject<I, O> = Observable.Subject<Request<I, O>>;
 export type RequestObserver<I, O> = Observable.Observer<Request<I, O>>;
 
 /**
- * Type declaration for observer.
+ * Type declaration for request subject.
  */
-export type Observer = Observable.Observer<void>;
+export type RequestSubject<I, O> = Observable.Subject<Request<I, O>>;
+
+/**
+ * Application request observer.
+ */
+export const RequestSubject = Observable.Subject;
+
+/**
+ * Type declaration for routers.
+ */
+export type Router<I, O> = Routing.Router<Request<I, O>>;
+
+/**
+ * Application router.
+ */
+export const Router = Routing.Router;
+
+/**
+ * Type declaration for route match.
+ */
+export type Match<I, O> = Routing.Match<Request<I, O>>;
+
+/**
+ * Application router.
+ */
+export const Match = Routing.Match;

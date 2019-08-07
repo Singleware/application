@@ -5,16 +5,17 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
-Object.defineProperty(exports, "__esModule", { value: true });
 var Main_1;
+Object.defineProperty(exports, "__esModule", { value: true });
 "use strict";
-/*
+/*!
  * Copyright (C) 2018-2019 Silas B. Domingos
  * This source code is licensed under the MIT License as described in the file LICENSE.
  */
 const Class = require("@singleware/class");
 const Routing = require("@singleware/routing");
 const Injection = require("@singleware/injection");
+const Types = require("./types");
 /**
  * Generic main application class.
  */
@@ -78,20 +79,20 @@ let Main = Main_1 = class Main extends Class.Null {
         const copy = Object.freeze({ ...request });
         for (const logger of this.loggers) {
             switch (type) {
-                case 'receive':
+                case Types.Request.Receive:
                     logger.onReceive(copy);
                     break;
-                case 'process':
+                case Types.Request.Process:
                     logger.onProcess(copy);
                     break;
-                case 'send':
+                case Types.Request.Send:
                     logger.onSend(copy);
                     break;
-                case 'error':
+                case Types.Request.Error:
                     logger.onError(copy);
                     break;
                 default:
-                    throw new TypeError(`Request notification type '${type}' does not supported.`);
+                    throw new TypeError(`Request type '${type}' doesn't supported.`);
             }
         }
     }
@@ -104,14 +105,14 @@ let Main = Main_1 = class Main extends Class.Null {
     notifyAction(type) {
         for (const logger of this.loggers) {
             switch (type) {
-                case 'start':
+                case Types.Action.Start:
                     logger.onStart(void 0);
                     break;
-                case 'stop':
+                case Types.Action.Stop:
                     logger.onStop(void 0);
                     break;
                 default:
-                    throw new TypeError(`Action notification type '${type}' does not supported.`);
+                    throw new TypeError(`Action type '${type}' doesn't supported.`);
             }
         }
     }
@@ -130,7 +131,7 @@ let Main = Main_1 = class Main extends Class.Null {
         }
         catch (error) {
             match.detail.error = error;
-            this.notifyRequest('error', match.detail);
+            this.notifyRequest(Types.Request.Error, match.detail);
         }
         finally {
             return result;
@@ -146,7 +147,11 @@ let Main = Main_1 = class Main extends Class.Null {
         const local = request.environment.local;
         const match = this.filters.match(request.path, request);
         while (request.granted && match.length) {
-            request.environment.local = { ...variables, ...match.variables, ...local };
+            request.environment.local = {
+                ...variables,
+                ...match.variables,
+                ...local
+            };
             await match.next();
             request.environment.local = local;
         }
@@ -157,38 +162,41 @@ let Main = Main_1 = class Main extends Class.Null {
      * @param request Request information.
      */
     async receiveHandler(request) {
-        this.notifyRequest('receive', request);
+        this.notifyRequest(Types.Request.Receive, request);
         const local = request.environment.local;
         const match = this.processors.match(request.path, request);
         while (match.length && (await this.performFilters(request, match.variables))) {
-            request.environment.local = { ...match.variables, ...local };
+            request.environment.local = {
+                ...match.variables,
+                ...local
+            };
             await match.next();
             request.environment.local = local;
         }
-        this.notifyRequest('process', request);
+        this.notifyRequest(Types.Request.Process, request);
     }
     /**
      * Send handler.
      * @param request Request information.
      */
     async sendHandler(request) {
-        this.notifyRequest('send', request);
+        this.notifyRequest(Types.Request.Send, request);
     }
     /**
      * Error handler.
      * @param request Request information.
      */
     async errorHandler(request) {
-        this.notifyRequest('error', request);
+        this.notifyRequest(Types.Request.Error, request);
     }
     /**
      * Filter handler to be inherited and extended.
      * @param match Match information.
-     * @param allowed Determine whether the filter is allowing the request matching or not.
+     * @param allows Determine whether the filter is allowing the request matching or not.
      * @returns Returns true when the filter handler still allows the request matching or false otherwise.
      */
-    async filterHandler(match, allowed) {
-        return allowed;
+    async filterHandler(match, allows) {
+        return allows;
     }
     /**
      * Process handler to be inherited and extended.
@@ -226,16 +234,16 @@ let Main = Main_1 = class Main extends Class.Null {
         const routes = Main_1.routes.get(handler.prototype.constructor) || [];
         for (const route of routes) {
             switch (route.type) {
-                case 'filter':
+                case Types.Route.Filter:
                     this.filters.add({
                         ...route.action,
                         onMatch: async (match) => {
-                            const allowed = (await this.performHandler(handler, route.method, parameters, match)) === true;
-                            match.detail.granted = (await this.filterHandler(match, allowed)) && allowed === true;
+                            const allows = (await this.performHandler(handler, route.method, parameters, match)) === true;
+                            match.detail.granted = (await this.filterHandler(match, allows)) && allows === true;
                         }
                     });
                     break;
-                case 'processor':
+                case Types.Route.Processor:
                     this.processors.add({
                         ...route.action,
                         exact: route.action.exact === void 0 ? true : route.action.exact,
@@ -287,9 +295,9 @@ let Main = Main_1 = class Main extends Class.Null {
      */
     start() {
         if (this.started) {
-            throw new Error(`The application is already initialized.`);
+            throw new Error(`Application was already started.`);
         }
-        this.notifyAction('start');
+        this.notifyAction(Types.Action.Start);
         for (const service of this.services) {
             service.onReceive.subscribe(this.receiveHandlerListener);
             service.onSend.subscribe(this.sendHandlerListener);
@@ -305,7 +313,7 @@ let Main = Main_1 = class Main extends Class.Null {
      */
     stop() {
         if (!this.started) {
-            throw new Error(`The application is not initialized.`);
+            throw new Error(`Application wasn't started.`);
         }
         for (const service of this.services) {
             service.stop();
@@ -314,7 +322,7 @@ let Main = Main_1 = class Main extends Class.Null {
             service.onError.unsubscribe(this.errorHandlerListener);
         }
         this.started = false;
-        this.notifyAction('stop');
+        this.notifyAction(Types.Action.Stop);
         return this;
     }
     /**
@@ -328,7 +336,7 @@ let Main = Main_1 = class Main extends Class.Null {
                 throw new TypeError(`Only methods are allowed as filters.`);
             }
             this.addRoute(prototype.constructor, {
-                type: 'filter',
+                type: Types.Route.Filter,
                 action: action,
                 method: property
             });
@@ -345,7 +353,7 @@ let Main = Main_1 = class Main extends Class.Null {
                 throw new TypeError(`Only methods are allowed as processors.`);
             }
             this.addRoute(prototype.constructor, {
-                type: 'processor',
+                type: Types.Route.Processor,
                 action: action,
                 method: property
             });
@@ -447,3 +455,4 @@ Main = Main_1 = __decorate([
     Class.Describe()
 ], Main);
 exports.Main = Main;
+//# sourceMappingURL=main.js.map

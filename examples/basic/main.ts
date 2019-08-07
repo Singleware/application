@@ -1,8 +1,9 @@
-/*
+/*!
  * Copyright (C) 2018 Silas B. Domingos
  * This source code is licensed under the MIT License as described in the file LICENSE.
  */
 import * as Class from '@singleware/class';
+
 import * as Application from '../../source';
 
 import { Input } from './input';
@@ -29,5 +30,5 @@ class Example extends Application.Main<Input, Output> {
   }
 }
 
-// Starts the application
-const instance = new Example();
+// Start application.
+new Example();

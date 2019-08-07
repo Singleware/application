@@ -1,9 +1,10 @@
-/*
+/*!
  * Copyright (C) 2018 Silas B. Domingos
  * This source code is licensed under the MIT License as described in the file LICENSE.
  */
 import * as Class from '@singleware/class';
 import * as Observable from '@singleware/observable';
+
 import * as Application from '../../source';
 
 import { Input } from './input';
@@ -63,7 +64,7 @@ export class Service extends Class.Null implements Application.Service<Input, Ou
   @Class.Public()
   public start(): void {
     const path = `/${process.argv[2] || ''}`;
-    this.receiveSubject.notifyAll({
+    const request = {
       path: path,
       input: {
         url: `https://application.singleware.com${path}`
@@ -80,7 +81,12 @@ export class Service extends Class.Null implements Application.Service<Input, Ou
         }
       },
       granted: true
-    });
+    };
+    try {
+      this.receiveSubject.notifyAll(request);
+    } catch (exception) {
+      this.errorSubject.notifyAll(request);
+    }
   }
 
   /**

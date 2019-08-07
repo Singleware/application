@@ -4,11 +4,9 @@
  */
 
 /**
- * Application response output.
+ * Action types.
  */
-export interface Output {
-  /**
-   * Response data.
-   */
-  data: string;
+export enum Action {
+  Start = 'start',
+  Stop = 'stop'
 }

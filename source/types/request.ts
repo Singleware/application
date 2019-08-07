@@ -4,11 +4,11 @@
  */
 
 /**
- * Application response output.
+ * Request types.
  */
-export interface Output {
-  /**
-   * Response data.
-   */
-  data: string;
+export enum Request {
+  Receive = 'receive',
+  Process = 'process',
+  Send = 'send',
+  Error = 'error'
 }

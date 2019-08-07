@@ -1,8 +1,9 @@
-/*
+/*!
  * Copyright (C) 2018-2019 Silas B. Domingos
  * This source code is licensed under the MIT License as described in the file LICENSE.
  */
-import * as Types from './types';
+import * as Aliases from './aliases';
+
 import { Request } from './request';
 
 /**
@@ -12,25 +13,25 @@ export interface Logger<I, O> {
   /**
    * Receive input events.
    */
-  onReceive: Types.RequestObserver<I, O>;
+  onReceive: Aliases.RequestObserver<I, O>;
   /**
    * Process input events.
    */
-  onProcess: Types.RequestObserver<I, O>;
+  onProcess: Aliases.RequestObserver<I, O>;
   /**
    * Send output events.
    */
-  onSend: Types.RequestObserver<I, O>;
+  onSend: Aliases.RequestObserver<I, O>;
   /**
    * Error events.
    */
-  onError: Types.RequestObserver<I, O>;
+  onError: Aliases.RequestObserver<I, O>;
   /**
    * Start events.
    */
-  onStart: Types.Observer;
+  onStart: Aliases.Observer;
   /**
    * Stop events.
    */
-  onStop: Types.Observer;
+  onStop: Aliases.Observer;
 }

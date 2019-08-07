@@ -2,13 +2,12 @@
  * Copyright (C) 2018-2019 Silas B. Domingos
  * This source code is licensed under the MIT License as described in the file LICENSE.
  */
-
 /**
- * Application response output.
+ * Request types.
  */
-export interface Output {
-  /**
-   * Response data.
-   */
-  data: string;
+export declare enum Request {
+    Receive = "receive",
+    Process = "process",
+    Send = "send",
+    Error = "error"
 }

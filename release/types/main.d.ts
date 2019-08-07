@@ -1,6 +1,10 @@
+/*!
+ * Copyright (C) 2018-2019 Silas B. Domingos
+ * This source code is licensed under the MIT License as described in the file LICENSE.
+ */
 import * as Class from '@singleware/class';
 import * as Injection from '@singleware/injection';
-import * as Types from './types';
+import * as Aliases from './aliases';
 import { Settings } from './settings';
 import { Service } from './service';
 import { Action } from './action';
@@ -103,46 +107,46 @@ export declare class Main<I, O> extends Class.Null {
     /**
      * Filter handler to be inherited and extended.
      * @param match Match information.
-     * @param allowed Determine whether the filter is allowing the request matching or not.
+     * @param allows Determine whether the filter is allowing the request matching or not.
      * @returns Returns true when the filter handler still allows the request matching or false otherwise.
      */
-    protected filterHandler(match: Types.Match<I, O>, allowed: boolean): Promise<boolean>;
+    protected filterHandler(match: Aliases.Match<I, O>, allows: boolean): Promise<boolean>;
     /**
      * Process handler to be inherited and extended.
      * @param match Match information.
      * @param callback Callable member.
      */
-    protected processHandler(match: Types.Match<I, O>, callback: Types.Callable): Promise<void>;
+    protected processHandler(match: Aliases.Match<I, O>, callback: Aliases.Callable): Promise<void>;
     /**
      * Decorates the specified class to be an application dependency.
      * @param settings Dependency settings.
      * @returns Returns the decorator method.
      */
-    protected Dependency(settings: Injection.Settings): Types.ClassDecorator;
+    protected Dependency(settings: Injection.Settings): Aliases.ClassDecorator;
     /**
      * Decorates the specified class to be injected by the specified application dependencies.
      * @param list List of dependencies.
      * @returns Returns the decorator method.
      */
-    protected Inject(...list: Injection.Dependency<any>[]): Types.ClassDecorator;
+    protected Inject(...list: Injection.Dependency<any>[]): Aliases.ClassDecorator;
     /**
      * Adds a generic route handler into this application.
      * @param handler Handler class type.
      * @returns Returns the own instance.
      */
-    protected addHandler(handler: Types.Constructor, ...parameters: any[]): Main<I, O>;
+    protected addHandler(handler: Aliases.Constructor, ...parameters: any[]): Main<I, O>;
     /**
      * Adds a service handler into this application.
      * @param instance Service class type or instance.
      * @returns Returns the service instance.
      */
-    protected addService<T extends Service<I, O>>(service: Types.Constructor<T> | T, ...parameters: any[]): T;
+    protected addService<T extends Service<I, O>>(service: Aliases.Constructor<T> | T, ...parameters: any[]): T;
     /**
      * Adds a logger handler into this application.
      * @param logger Logger class type or instance.
      * @returns Returns the logger instance.
      */
-    protected addLogger<T extends Logger<I, O>>(logger: Types.Constructor<T> | T, ...parameters: any[]): T;
+    protected addLogger<T extends Logger<I, O>>(logger: Aliases.Constructor<T> | T, ...parameters: any[]): T;
     /**
      * Starts the application with all included services.
      * @returns Returns the own instance.
@@ -163,11 +167,11 @@ export declare class Main<I, O> extends Class.Null {
      * @param action Filter action settings.
      * @returns Returns the decorator method.
      */
-    static Filter(action: Action): Types.MemberDecorator;
+    static Filter(action: Action): Aliases.MemberDecorator;
     /**
      * Decorates the specified member to process an application request.
      * @param action Route action settings.
      * @returns Returns the decorator method.
      */
-    static Processor(action: Action): Types.MemberDecorator;
+    static Processor(action: Action): Aliases.MemberDecorator;
 }

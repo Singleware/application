@@ -1,4 +1,4 @@
-/*
+/*!
  * Copyright (C) 2018-2019 Silas B. Domingos
  * This source code is licensed under the MIT License as described in the file LICENSE.
  */
@@ -6,6 +6,7 @@ import * as Class from '@singleware/class';
 import * as Routing from '@singleware/routing';
 import * as Injection from '@singleware/injection';
 
+import * as Aliases from './aliases';
 import * as Types from './types';
 
 import { Settings } from './settings';
@@ -24,7 +25,7 @@ export class Main<I, O> extends Class.Null {
    * Global routes.
    */
   @Class.Private()
-  private static routes = new WeakMap<Types.Constructor, Route[]>();
+  private static routes = new WeakMap<Aliases.Constructor, Route[]>();
 
   /**
    * Determines whether the application is started or not.
@@ -54,13 +55,13 @@ export class Main<I, O> extends Class.Null {
    * Router for filters.
    */
   @Class.Private()
-  private filters: Types.Router<I, O>;
+  private filters: Aliases.Router<I, O>;
 
   /**
    * Router for processors.
    */
   @Class.Private()
-  private processors: Types.Router<I, O>;
+  private processors: Aliases.Router<I, O>;
 
   /**
    * Receive handler listener.
@@ -86,7 +87,7 @@ export class Main<I, O> extends Class.Null {
    * @param route Route settings.
    */
   @Class.Private()
-  private static addRoute(handler: Types.Constructor, route: Route): void {
+  private static addRoute(handler: Aliases.Constructor, route: Route): void {
     let list;
     if (!(list = <Route[]>this.routes.get(handler))) {
       this.routes.set(handler, (list = <Route[]>[]));
@@ -101,24 +102,24 @@ export class Main<I, O> extends Class.Null {
    * @throws Throws an error when the notification type is not valid.
    */
   @Class.Private()
-  private notifyRequest(type: string, request: Request<I, O>): void {
+  private notifyRequest(type: Types.Request, request: Request<I, O>): void {
     const copy = Object.freeze({ ...request });
     for (const logger of this.loggers) {
       switch (type) {
-        case 'receive':
+        case Types.Request.Receive:
           logger.onReceive(copy);
           break;
-        case 'process':
+        case Types.Request.Process:
           logger.onProcess(copy);
           break;
-        case 'send':
+        case Types.Request.Send:
           logger.onSend(copy);
           break;
-        case 'error':
+        case Types.Request.Error:
           logger.onError(copy);
           break;
         default:
-          throw new TypeError(`Request notification type '${type}' does not supported.`);
+          throw new TypeError(`Request type '${type}' doesn't supported.`);
       }
     }
   }
@@ -130,17 +131,17 @@ export class Main<I, O> extends Class.Null {
    * @throws Throws an error when the notification type is not valid.
    */
   @Class.Private()
-  private notifyAction(type: string): void {
+  private notifyAction(type: Types.Action): void {
     for (const logger of this.loggers) {
       switch (type) {
-        case 'start':
+        case Types.Action.Start:
           logger.onStart(void 0);
           break;
-        case 'stop':
+        case Types.Action.Stop:
           logger.onStop(void 0);
           break;
         default:
-          throw new TypeError(`Action notification type '${type}' does not supported.`);
+          throw new TypeError(`Action type '${type}' doesn't supported.`);
       }
     }
   }
@@ -154,13 +155,13 @@ export class Main<I, O> extends Class.Null {
    * @returns Returns the same value returned by the performed handler method.
    */
   @Class.Private()
-  private async performHandler(handler: Types.Constructor, method: string, parameters: any[], match: Types.Match<I, O>): Promise<any> {
+  private async performHandler(handler: Aliases.Constructor, method: string, parameters: any[], match: Aliases.Match<I, O>): Promise<any> {
     let result;
     try {
       result = await (<any>new handler(...parameters))[method](match);
     } catch (error) {
       match.detail.error = error;
-      this.notifyRequest('error', match.detail);
+      this.notifyRequest(Types.Request.Error, match.detail);
     } finally {
       return result;
     }
@@ -173,11 +174,15 @@ export class Main<I, O> extends Class.Null {
    * @returns Returns true when the request access is granted or false otherwise.
    */
   @Class.Private()
-  private async performFilters(request: Request<I, O>, variables: Types.Variables): Promise<boolean> {
+  private async performFilters(request: Request<I, O>, variables: Aliases.Variables): Promise<boolean> {
     const local = request.environment.local;
     const match = this.filters.match(request.path, request);
     while (request.granted && match.length) {
-      request.environment.local = { ...variables, ...match.variables, ...local };
+      request.environment.local = {
+        ...variables,
+        ...match.variables,
+        ...local
+      };
       await match.next();
       request.environment.local = local;
     }
@@ -190,15 +195,18 @@ export class Main<I, O> extends Class.Null {
    */
   @Class.Private()
   private async receiveHandler(request: Request<I, O>): Promise<void> {
-    this.notifyRequest('receive', request);
+    this.notifyRequest(Types.Request.Receive, request);
     const local = request.environment.local;
     const match = this.processors.match(request.path, request);
     while (match.length && (await this.performFilters(request, match.variables))) {
-      request.environment.local = { ...match.variables, ...local };
+      request.environment.local = {
+        ...match.variables,
+        ...local
+      };
       await match.next();
       request.environment.local = local;
     }
-    this.notifyRequest('process', request);
+    this.notifyRequest(Types.Request.Process, request);
   }
 
   /**
@@ -207,7 +215,7 @@ export class Main<I, O> extends Class.Null {
    */
   @Class.Private()
   private async sendHandler(request: Request<I, O>): Promise<void> {
-    this.notifyRequest('send', request);
+    this.notifyRequest(Types.Request.Send, request);
   }
 
   /**
@@ -216,18 +224,18 @@ export class Main<I, O> extends Class.Null {
    */
   @Class.Private()
   private async errorHandler(request: Request<I, O>): Promise<void> {
-    this.notifyRequest('error', request);
+    this.notifyRequest(Types.Request.Error, request);
   }
 
   /**
    * Filter handler to be inherited and extended.
    * @param match Match information.
-   * @param allowed Determine whether the filter is allowing the request matching or not.
+   * @param allows Determine whether the filter is allowing the request matching or not.
    * @returns Returns true when the filter handler still allows the request matching or false otherwise.
    */
   @Class.Protected()
-  protected async filterHandler(match: Types.Match<I, O>, allowed: boolean): Promise<boolean> {
-    return allowed;
+  protected async filterHandler(match: Aliases.Match<I, O>, allows: boolean): Promise<boolean> {
+    return allows;
   }
 
   /**
@@ -236,7 +244,7 @@ export class Main<I, O> extends Class.Null {
    * @param callback Callable member.
    */
   @Class.Protected()
-  protected async processHandler(match: Types.Match<I, O>, callback: Types.Callable): Promise<void> {
+  protected async processHandler(match: Aliases.Match<I, O>, callback: Aliases.Callable): Promise<void> {
     await callback(match);
   }
 
@@ -246,7 +254,7 @@ export class Main<I, O> extends Class.Null {
    * @returns Returns the decorator method.
    */
   @Class.Protected()
-  protected Dependency(settings: Injection.Settings): Types.ClassDecorator {
+  protected Dependency(settings: Injection.Settings): Aliases.ClassDecorator {
     return this.dim.Describe(settings);
   }
 
@@ -256,7 +264,7 @@ export class Main<I, O> extends Class.Null {
    * @returns Returns the decorator method.
    */
   @Class.Protected()
-  protected Inject(...list: Injection.Dependency<any>[]): Types.ClassDecorator {
+  protected Inject(...list: Injection.Dependency<any>[]): Aliases.ClassDecorator {
     return this.dim.Inject(...list);
   }
 
@@ -266,27 +274,27 @@ export class Main<I, O> extends Class.Null {
    * @returns Returns the own instance.
    */
   @Class.Protected()
-  protected addHandler(handler: Types.Constructor, ...parameters: any[]): Main<I, O> {
+  protected addHandler(handler: Aliases.Constructor, ...parameters: any[]): Main<I, O> {
     if (this.started) {
       throw new Error(`To add new handlers the application must be stopped.`);
     }
     const routes = <Route[]>Main.routes.get(handler.prototype.constructor) || [];
     for (const route of routes) {
       switch (route.type) {
-        case 'filter':
+        case Types.Route.Filter:
           this.filters.add({
             ...route.action,
-            onMatch: async (match: Types.Match<I, O>): Promise<void> => {
-              const allowed = (await this.performHandler(handler, route.method, parameters, match)) === true;
-              match.detail.granted = (await this.filterHandler(match, allowed)) && allowed === true;
+            onMatch: async (match: Aliases.Match<I, O>): Promise<void> => {
+              const allows = (await this.performHandler(handler, route.method, parameters, match)) === true;
+              match.detail.granted = (await this.filterHandler(match, allows)) && allows === true;
             }
           });
           break;
-        case 'processor':
+        case Types.Route.Processor:
           this.processors.add({
             ...route.action,
             exact: route.action.exact === void 0 ? true : route.action.exact,
-            onMatch: async (match: Types.Match<I, O>): Promise<void> => {
+            onMatch: async (match: Aliases.Match<I, O>): Promise<void> => {
               const callback = this.performHandler.bind(this, handler, route.method, parameters);
               await this.processHandler(match, callback);
             }
@@ -305,7 +313,7 @@ export class Main<I, O> extends Class.Null {
    * @returns Returns the service instance.
    */
   @Class.Protected()
-  protected addService<T extends Service<I, O>>(service: Types.Constructor<T> | T, ...parameters: any[]): T {
+  protected addService<T extends Service<I, O>>(service: Aliases.Constructor<T> | T, ...parameters: any[]): T {
     if (this.started) {
       throw new Error(`To add new services the application must be stopped.`);
     }
@@ -322,7 +330,7 @@ export class Main<I, O> extends Class.Null {
    * @returns Returns the logger instance.
    */
   @Class.Protected()
-  protected addLogger<T extends Logger<I, O>>(logger: Types.Constructor<T> | T, ...parameters: any[]): T {
+  protected addLogger<T extends Logger<I, O>>(logger: Aliases.Constructor<T> | T, ...parameters: any[]): T {
     if (this.started) {
       throw new Error(`To add new loggers service the application must be stopped.`);
     }
@@ -340,9 +348,9 @@ export class Main<I, O> extends Class.Null {
   @Class.Protected()
   protected start(): Main<I, O> {
     if (this.started) {
-      throw new Error(`The application is already initialized.`);
+      throw new Error(`Application was already started.`);
     }
-    this.notifyAction('start');
+    this.notifyAction(Types.Action.Start);
     for (const service of this.services) {
       service.onReceive.subscribe(this.receiveHandlerListener);
       service.onSend.subscribe(this.sendHandlerListener);
@@ -360,7 +368,7 @@ export class Main<I, O> extends Class.Null {
   @Class.Protected()
   protected stop(): Main<I, O> {
     if (!this.started) {
-      throw new Error(`The application is not initialized.`);
+      throw new Error(`Application wasn't started.`);
     }
     for (const service of this.services) {
       service.stop();
@@ -369,7 +377,7 @@ export class Main<I, O> extends Class.Null {
       service.onError.unsubscribe(this.errorHandlerListener);
     }
     this.started = false;
-    this.notifyAction('stop');
+    this.notifyAction(Types.Action.Stop);
     return this;
   }
 
@@ -389,13 +397,13 @@ export class Main<I, O> extends Class.Null {
    * @returns Returns the decorator method.
    */
   @Class.Public()
-  public static Filter(action: Action): Types.MemberDecorator {
-    return (prototype: any, property: PropertyKey, descriptor: PropertyDescriptor): void => {
+  public static Filter(action: Action): Aliases.MemberDecorator {
+    return (prototype: any, property: string | Symbol, descriptor: PropertyDescriptor): void => {
       if (!(descriptor.value instanceof Function)) {
         throw new TypeError(`Only methods are allowed as filters.`);
       }
       this.addRoute(prototype.constructor, {
-        type: 'filter',
+        type: Types.Route.Filter,
         action: action,
         method: <string>property
       });
@@ -408,13 +416,13 @@ export class Main<I, O> extends Class.Null {
    * @returns Returns the decorator method.
    */
   @Class.Public()
-  public static Processor(action: Action): Types.MemberDecorator {
-    return (prototype: any, property: PropertyKey, descriptor: PropertyDescriptor): void => {
+  public static Processor(action: Action): Aliases.MemberDecorator {
+    return (prototype: any, property: string | Symbol, descriptor: PropertyDescriptor): void => {
       if (!(descriptor.value instanceof Function)) {
         throw new TypeError(`Only methods are allowed as processors.`);
       }
       this.addRoute(prototype.constructor, {
-        type: 'processor',
+        type: Types.Route.Processor,
         action: action,
         method: <string>property
       });

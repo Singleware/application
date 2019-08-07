@@ -1,8 +1,8 @@
-/*
+/*!
  * Copyright (C) 2018-2019 Silas B. Domingos
  * This source code is licensed under the MIT License as described in the file LICENSE.
  */
-import * as Types from './types';
+import * as Aliases from './aliases';
 
 /**
  * Application actions interface.
@@ -19,9 +19,9 @@ export interface Action {
   /**
    * Action path constraint.
    */
-  constraint?: Types.Constraint;
+  constraint?: Aliases.Constraint;
   /**
    * Action environment.
    */
-  environment?: Types.Variables;
+  environment?: Aliases.Variables;
 }
